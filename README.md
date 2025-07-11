@@ -40,7 +40,9 @@ project-root/
 │
 ├── README.md
 └── requirements.txt
-⚙️ Módulos funcionales
+
+## ⚙️ Módulos funcionales
+
 1. Entrada
 text_to_steps.py
 Toma una orden en texto y genera una lista de pasos en JSON.
@@ -65,7 +67,8 @@ Recibe coordenadas desde un JSON y simula clics o escritura con pyautogui.
 orchestrate.py
 Conecta todas las partes en secuencia. Al principio manual, luego automático.
 
-🔁 Flujo de trabajo modular (manual)
+## 🔁 Flujo de trabajo modular (manual)
+
 Escribir o grabar una orden → input/
 
 Convertir a pasos con text_to_steps.py → parsed_steps/
@@ -76,7 +79,8 @@ Subir imagen + pasos manualmente a GPT-4V → guardar .json en vision_outputs/
 
 Ejecutar acciones con execute_actions.py → logs en executions/
 
-🔧 Requisitos
+## 🔧 Requisitos
+
 Python 3.9+
 
 Paquetes (instalar con pip install -r requirements.txt)
@@ -93,14 +97,17 @@ whisper (si se usa entrada por voz)
 
 pillow
 
-🧪 Modo debug
+## 🧪 Modo debug
+
 Cada módulo puede ejecutarse de forma independiente con la bandera --debug para validar entrada/salida.
 
 bash
 Copiar
 Editar
 python scripts/text_to_steps.py --input input/text_orders/example.txt --debug
-🚀 Objetivo de integración (semana 2)
+
+## 🚀 Objetivo de integración (semana 2)
+
 La idea es que todo el sistema funcione con un único comando:
 
 bash
@@ -109,9 +116,9 @@ Editar
 python scripts/orchestrate.py --input "Abre Google y busca clima en Madrid"
 Que internamente haga: entrada → pasos → screenshot → GPT → coordenadas → ejecución.
 
-📄 Licencia
+## 📄 Licencia
 MIT – Uso libre para fines de desarrollo, estudio y mejora de automatización con visión + LLM.
 
-👥 Equipo
+## 👥 Equipo
 Proyecto desarrollado por 3 integrantes en 2 semanas. Cada módulo fue testeado individualmente y luego integrado paso a paso.
 
