@@ -40,7 +40,7 @@ project-root/
 │
 ├── README.md
 └── requirements.txt
-
+```
 ## ⚙️ Módulos funcionales
 
 1. Entrada
