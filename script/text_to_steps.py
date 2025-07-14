@@ -71,7 +71,7 @@ Devuelve únicamente la lista JSON.
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", required=True, help="Ruta al archivo.txt")
+    parser.add_argument("--input", default="../input_text/order.txt", help="Ruta al archivo de entrada")
     parser.add_argument("--output", default="parsed_steps/steps.json")
     args = parser.parse_args()
 
