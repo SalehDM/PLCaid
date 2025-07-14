@@ -1,9 +1,15 @@
-import pyautogui
-import os
-from datetime import datetime
+import mss
+from PIL import Image
 
-os.makedirs("screenshots", exist_ok=True)
-filename = f"screenshots/captura_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
-screenshot = pyautogui.screenshot()
-screenshot.save(filename)
-print(f"Captura guardada en {filename}")
+with mss.mss() as sct:
+    # Captura la pantalla completa (monitor principal)
+    monitor = sct.monitors[2]
+    sct_img = sct.grab(monitor)
+
+    # Convierte la imagen a formato compatible con PIL
+    img = Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")
+
+    # Guarda la imagen
+    img.save("/home/reboot-student/Desktop/project_PLC/PLCaid/screenshots/pantalla.png")
+    print("Captura de pantalla guardada como 'captura_pantalla.png'.")
+    
