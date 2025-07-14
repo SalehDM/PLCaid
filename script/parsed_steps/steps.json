@@ -1,0 +1,26 @@
+[
+  {
+    "step": 1,
+    "action": "mueve el cursor al menú 'Inicio' en la esquina inferior izquierda de la pantalla"
+  },
+  {
+    "step": 2,
+    "action": "haz clic en el menú 'Inicio'"
+  },
+  {
+    "step": 3,
+    "action": "mueve el cursor a 'Todos los programas'"
+  },
+  {
+    "step": 4,
+    "action": "haz clic en 'Todos los programas'"
+  },
+  {
+    "step": 5,
+    "action": "mueve el cursor al navegador que deseas abrir"
+  },
+  {
+    "step": 6,
+    "action": "haz clic en el navegador"
+  }
+]
