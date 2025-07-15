@@ -11,5 +11,5 @@ with mss.mss() as sct:
 
     # Guarda la imagen
     img.save("/home/reboot-student/Desktop/project_PLC/PLCaid/screenshots/pantalla.png")
-    print("Captura de pantalla guardada como 'captura_pantalla.png'.")
+    print("Captura de pantalla guardada como 'pantalla.png'.")
     
