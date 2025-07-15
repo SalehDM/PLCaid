@@ -10,43 +10,86 @@ def parse_text_to_steps(text: str) -> list:
     Llama a la API de OpenAI para convertir un texto en pasos estructurados.
     """
     prompt = f"""
-Ignora el contenido lógico o técnico de la tarea descrita. Tu única responsabilidad es convertir el siguiente texto en una secuencia de pasos físicos específicos con ratón y teclado, como si fueras un asistente robótico que mueve el ratón y escribe en el teclado paso a paso.
+Eres un asistente que ayuda a un robot a ejecutar tareas en **Windows XP** exclusivamente.
 
-Eres un asistente que ayuda al usuario a automatizar tareas dentro de Windows XP únicamente a partir de movimientos del ratón y del teclado. Cada paso debe ser una **acción física concreta**, como:
+El robot solo puede:
+- Buscar elementos visuales (como iconos, botones, menús, submenús o campos de entrada).
+- Hacer scroll con la rueda del ratón en menús desplegables o contextuales grandes que lo requieran; como, por ejemplo, el menú 'Todos los programas'.
+- Hacer clic o doble clic con el botón izquierdo o derecho del ratón sobre los elementos visuales.
+- Añadir texto en campos de entrada, haciendo clic previamente en la primera línea disponible.
+- Usar atajos de teclado como 'Enter', 'Tab', 'Esc', 'Ctrl+C', 'Ctrl+V', etc.
 
-- mover el cursor a una posición o elemento (ejemplo: "mueve el ratón al acceso directo del navegador en el escritorio")
-- hacer clic, doble clic, clic derecho
-- introducir texto con el teclado
-- pulsar combinaciones de teclas (Ctrl+C, Enter, etc.)
-- seleccionar menús o botones
-- arrastrar o soltar
-- cerrar o minimizar ventanas
+Por lo tanto, para completar una tarea, debe buscar los elementos en la interfaz visual (por ejemplo: el botón de inicio, los accesos directos, los menús del sistema) y realizar las acciones permitidas pertinentes para conseguir el objetivo solicitado.
+Incluye pausas entre pasos si es necesario, como por ejemplo, "espera 2 segundos" o "espera a que se abra la ventana".
+Devuelve una **lista de pasos en formato JSON**, con los campos `"step"` y `"action"`.
 
-Extrae estos pasos en formato JSON, con los campos `"step"` y `"action"`, como en este ejemplo:
+Ejemplos:
+
+Ir a la página 'www.youtube.es':
+[
+  {{ "step": 1, "action": "busca el icono de 'Inicio'" }},
+  {{ "step": 2, "action": "haz clic en el icono de 'Inicio'" }},
+  {{ "step": 3, "action": "espera a que se abra el menú de 'Inicio'" }},
+  {{ "step": 4, "action": "busca el icono de 'Todos los programas'" }},
+  {{ "step": 5, "action": "haz clic en el icono de 'Todos los programas'" }},
+  {{ "step": 6, "action": "espera a que se abra el menú desplegable 'Todos los programas'" }},
+  {{ "step": 7, "action": "haz scroll en el menú desplegable 'Todos los programas'" }},
+  {{ "step": 8, "action": "busca el icono del navegador web" }},
+  {{ "step": 9, "action": "haz clic en el icono del navegador web" }},
+  {{ "step": 10, "action": "espera a que se abra el navegador web" }},
+  {{ "step": 11, "action": "busca el campo de entrada de la URL" }},
+  {{ "step": 12, "action": "haz clic en el campo de entrada de la URL" }},
+  {{ "step": 13, "action": "escribe 'www.youtube.es'" }},
+  {{ "step": 14, "action": "presiona 'Enter' para cargar la página" }}
+]
+
+Crear una carpeta nueva llamada 'Documentos':
+[
+  {{ "step": 1, "action": "busca el icono de 'Inicio'" }},
+  {{ "step": 2, "action": "haz clic en el icono de 'Inicio'" }},
+  {{ "step": 3, "action": "espera a que se abra el menú de 'Inicio'" }},
+  {{ "step": 4, "action": "busca el icono de 'Mi PC'" }},
+  {{ "step": 5, "action": "haz clic en el icono de 'Mi PC'" }},
+  {{ "step": 6, "action": "espera a que se abra la ventana de 'Mi PC'" }},
+  {{ "step": 7, "action": "busca el icono de 'Disco local (C:)'" }},
+  {{ "step": 8, "action": "haz doble clic en el icono de 'Disco local (C:)'" }},
+  {{ "step": 9, "action": "espera a que se abra la ventana del disco local" }},
+  {{ "step": 10, "action": "haz clic derecho en un espacio vacío dentro de la ventana" }},
+  {{ "step": 11, "action": "selecciona 'Nuevo' en el menú contextual" }},
+  {{ "step": 12, "action": "selecciona 'Carpeta' en el submenú" }},
+  {{ "step": 13, "action": "escribe 'Documentos' como nombre de la nueva carpeta" }},
+  {{ "step": 14, "action": "presiona 'Enter' para crear la carpeta" }}
+]
+
+Abrir la aplicación MicroWin:
 
 [
-  {{ "step": 1, "action": "mueve el cursor al acceso directo del navegador en el escritorio" }},
-  {{ "step": 2, "action": "haz doble clic en el acceso directo" }},
-  {{ "step": 3, "action": "espera a que se abra la ventana principal del programa" }},
-  {{ "step": 4, "action": "mueve el ratón al icono de 'Nueva pestaña'" }},
-  {{ "step": 5, "action": "haz clic en el icono de 'Nueva pestaña'" }},
-  ...
+  {{ "step": 1, "action": "busca el icono de 'Inicio'" }},
+  {{ "step": 2, "action": "haz clic en el icono de 'Inicio'" }},
+  {{ "step": 3, "action": "espera a que se abra el menú de 'Inicio'" }},
+  {{ "step": 4, "action": "busca el icono de 'Todos los programas'" }},
+  {{ "step": 5, "action": "haz clic en el icono de 'Todos los programas'" }},
+  {{ "step": 6, "action": "espera a que se abra el menú desplegable 'Todos los programas'" }},
+  {{ "step": 7, "action": "haz scroll en el menú desplegable 'Todos los programas'" }},
+  {{ "step": 8, "action": "busca el icono de 'MicroWin'" }},
+  {{ "step": 9, "action": "haz clic en el icono de 'MicroWin'" }},
+  {{ "step": 10, "action": "espera a que se abra la aplicación MicroWin" }}
 ]
+
 
 Texto de entrada:
 \"\"\"
 {text}
 \"\"\"
 
-No expliques qué hace cada paso, solo describe la acción física como si la ejecutara un robot sin contexto
-
-Devuelve únicamente la lista JSON.
+No expliques los pasos ni incluyas texto fuera del JSON.
+Devuelve exclusivamente la lista JSON.
 """
 
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "Eres un asistente que estructura instrucciones paso a paso."},
+            {"role": "system", "content": "Eres un asistente que estructura instrucciones visuales paso a paso."},
             {"role": "user", "content": prompt}
         ],
         temperature=0.3
@@ -54,10 +97,7 @@ Devuelve únicamente la lista JSON.
 
     content = response.choices[0].message.content
 
-    # Eliminar delimitadores de bloque tipo ```json ... ```
     cleaned_content = content.strip().strip("`")
-
-    # A veces viene como ```json\n...\n``` así que lo filtramos más seguro:
     if cleaned_content.startswith("json"):
         cleaned_content = cleaned_content[4:].strip()
 

@@ -1,22 +1,10 @@
 [
   {
     "step": 1,
-    "action": "abre el menú de inicio"
+    "action": "busca el icono de 'MicroWin'"
   },
   {
     "step": 2,
-    "action": "mueve el cursor a 'Todos los programas'"
-  },
-  {
-    "step": 3,
-    "action": "haz clic en 'Todos los programas'"
-  },
-  {
-    "step": 4,
-    "action": "mueve el cursor al navegador web"
-  },
-  {
-    "step": 5,
-    "action": "haz clic en el navegador web"
+    "action": "haz doble clic en el icono de 'MicroWin'"
   }
 ]
