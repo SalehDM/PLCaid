@@ -111,8 +111,8 @@ Devuelve exclusivamente la lista JSON.
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", default="../input_text/order.txt", help="Ruta al archivo de entrada")
-    parser.add_argument("--output", default="parsed_steps/steps.json")
+    parser.add_argument("--input", default="/home/reboot-student/code/labs/PLCaid/input_text/order.txt", help="Ruta al archivo de entrada")
+    parser.add_argument("--output", default="/home/reboot-student/code/labs/PLCaid/parsed_steps/steps.json")
     args = parser.parse_args()
 
     if not os.path.exists(args.input):

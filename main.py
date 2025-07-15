@@ -1,22 +1,31 @@
-import os
+import subprocess
 
 print("""
 ==== GPT Clicker Assistant ====
-1. Texto a pasos (NLP)
-2. Captura de pantalla
-3. Imagen + pasos → coordenadas
-4. Ejecutar acciones
+1. Audio a pasos 
+2. Texto a pasos
+3. Captura de pantalla
+4. Imagen + pasos → coordenadas
+5. Ejecutar acciones
 """)
 
-opcion = input("Elige módulo a ejecutar (1-4): ")
+opcion = input("Elige módulo a ejecutar (1-5): ")
 
 if opcion == "1":
-    os.system("python scripts/text_to_steps.py")
+    # Ejecuta voice_to_text_whisper.py y espera que termine
+    result1 = subprocess.run(["python3", "script/voice_to_text_whisper.py"])
+    if result1.returncode == 0:
+        # Si el anterior terminó bien, ejecuta text_to_steps.py
+        subprocess.run(["python3", "script/text_to_steps.py"])
+    else:
+        print("Error: voice_to_text_whisper.py no finalizó correctamente.")
 elif opcion == "2":
-    os.system("python scripts/screenshot.py")
+    subprocess.run(["python3", "script/text_to_steps.py"])
 elif opcion == "3":
-    os.system("python scripts/vision_prompt_api.py")
+    subprocess.run(["python3", "script/screenshot.py"])
 elif opcion == "4":
-    os.system("python scripts/execute_actions.py")
+    subprocess.run(["python3", "script/vision_prompt_api.py"])
+elif opcion == "5":
+    subprocess.run(["python3", "script/execute_actions.py"])
 else:
     print("Opción no válida.")
