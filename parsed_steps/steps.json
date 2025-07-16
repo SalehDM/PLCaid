@@ -1,54 +1,22 @@
 [
   {
     "step": 1,
-    "action": "busca el icono de 'Inicio'"
+    "action": "busca el icono de 'Papelera de reciclaje'"
   },
   {
     "step": 2,
-    "action": "haz clic en el icono de 'Inicio'"
+    "action": "haz doble clic en el icono de 'Papelera de reciclaje'"
   },
   {
     "step": 3,
-    "action": "espera a que se abra el menú de 'Inicio'"
+    "action": "busca el archivo TXT dentro de la papelera"
   },
   {
     "step": 4,
-    "action": "busca el icono de 'Todos los programas'"
+    "action": "haz clic derecho en el archivo TXT"
   },
   {
     "step": 5,
-    "action": "haz clic en el icono de 'Todos los programas'"
-  },
-  {
-    "step": 6,
-    "action": "espera a que se abra el menú desplegable 'Todos los programas'"
-  },
-  {
-    "step": 7,
-    "action": "haz scroll en el menú desplegable 'Todos los programas'"
-  },
-  {
-    "step": 8,
-    "action": "busca el icono de 'Accesorios'"
-  },
-  {
-    "step": 9,
-    "action": "haz clic en el icono de 'Accesorios'"
-  },
-  {
-    "step": 10,
-    "action": "espera a que se abra el menú de 'Accesorios'"
-  },
-  {
-    "step": 11,
-    "action": "busca el icono de 'Bloc de notas'"
-  },
-  {
-    "step": 12,
-    "action": "haz clic en el icono de 'Bloc de notas'"
-  },
-  {
-    "step": 13,
-    "action": "espera a que se abra la aplicación Bloc de notas"
+    "action": "selecciona 'Eliminar' en el menú contextual"
   }
 ]
