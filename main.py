@@ -1,16 +1,9 @@
 import os
+import json
 import subprocess
 import time
-import json
+import psutil
 
-print("""
-==== GPT Clicker Assistant ====
-1. Audio a pasos 
-2. Texto a pasos
-3. Captura de pantalla
-4. Imagen + pasos → coordenadas
-5. Ejecutar acciones
-""")
 
 print("== ORQUESTADOR GPT CLICKER ==")
 print()
@@ -34,41 +27,56 @@ elif opcion == "2":
 else:
     print("Opción no válida.")
 
+####################################################################################################################
 
 # Paso 2: Ejecutar módulo Captura de pantalla
 print("\n[2] Ejecutando módulo Captura de pantalla...")
 
-# Ruta al archivo steps.json
+def is_execute_actions_running():
+    """
+    Devuelve True si el proceso 'execute_actions.py' está corriendo.
+    """
+    for proc in psutil.process_iter(attrs=['pid', 'name', 'cmdline']):
+        try:
+            if "execute_actions.py" in proc.info["cmdline"]:
+                return True
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+    return False
+
+# Paso 2.1: Cargar pasos desde steps.json
+print("\n[1] Cargando pasos desde steps.json...")
+
 script_dir = os.path.dirname(os.path.abspath(__file__))
 steps_path = os.path.join(script_dir, "..", "parsed_steps", "steps.json")
 
-# Cargar pasos desde steps.json
 with open(steps_path, "r", encoding="utf-8") as f:
     steps = json.load(f)
 
-# Iniciar capturas por cada paso
-with mss.mss() as sct:
-    monitor = sct.monitors[2]  # Usa el segundo monitor. Cambia a [1] si es solo uno.
+# Paso 2.2: Ejecutar bucle de pasos
+total_steps = len(steps)
 
-    total_steps = len(steps)
+for index, step in enumerate(steps):
+    step_number = step["step"]
+    action = step["action"]
 
-    for index, step in enumerate(steps):
-        step_number = step["step"]
-        action = step["action"]
+    print(f"\nPaso {step_number}/{total_steps}: {action}")
 
-        print(f"\nPaso {step_number}/{total_steps}: {action}")
+    # 1. Ejecutar módulo screenshot.py (espera a que termine)
+    print("📸 Ejecutando captura de pantalla...")
+    subprocess.run(["python3", "scripts/screenshot.py"])
 
-        # Captura automática al mostrar el paso
-        sct_img = sct.grab(monitor)
-        img = Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")
-        img.save(output_file)
-        print(f"📸 Captura guardada como 'pantalla.png'")
+    # 2. Esperar a que otro módulo termine el proceso 'execute_actions.py'
+    print("⏳ Esperando a que se cierre 'execute_actions.py'...")
 
-        # Si no es el último paso, espera al usuario para continuar
-        if index < total_steps - 1:
-            input("Pulsa 1 y Enter para pasar al siguiente paso... ")
-        else:
-            print("\n✅ Todos los pasos completados. Proceso finalizado.")
+    while is_execute_actions_running():
+        time.sleep(1)  # Espera 1 segundo antes de comprobar de nuevo
+
+    print("✅ Acción detectada como completada.")
+
+print("\n🎉 Todos los pasos han sido ejecutados.")
+
+####################################################################################################################
 
 # Paso 3: Analizar imagen con GPT Vision (simulado)
 print("\n[3] Analizando imagen con GPT Vision...")
