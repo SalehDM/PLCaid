@@ -1,1 +1,1 @@
-Abre el explorador.
+Elimina el archivo TXT de la papelera.

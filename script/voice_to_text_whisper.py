@@ -15,7 +15,12 @@ import tempfile # Para crear archivos temporales
 from dotenv import load_dotenv
 load_dotenv()
 
-def transcribe_voice_input_whisper_direct_pyaudio(output_dir="../input_text/", language="es"):
+# Define el directorio por defecto para guardar las transcripciones
+script_dir = os.path.dirname(os.path.abspath(__file__))
+default_output_dir = os.path.join(script_dir, "..", "input_text")
+
+
+def transcribe_voice_input_whisper_direct_pyaudio(output_dir=default_output_dir, language="es"):
     """
     Captura audio del micrófono directamente con PyAudio, lo transcribe a texto
     usando OpenAI Whisper API, guarda la transcripción en un único archivo .txt
@@ -23,7 +28,7 @@ def transcribe_voice_input_whisper_direct_pyaudio(output_dir="../input_text/", l
 
     Args:
         output_dir (str): Directorio donde se guardará el archivo de texto transcrito.
-                          Por defecto, 'input/text_orders/'.
+                          
         language (str): Idioma para la transcripción (ej. 'es' para español, 'en' para inglés).
                         Nota: Whisper usa códigos de idioma ISO-639-1 (ej. 'es', 'en').
     """
@@ -121,8 +126,8 @@ def transcribe_voice_input_whisper_direct_pyaudio(output_dir="../input_text/", l
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Prototipo de entrada de voz a texto usando OpenAI Whisper API para PLCaid.")
-    parser.add_argument("--output_dir", type=str, default="../input_text/",
-                        help="Directorio donde se guardarán las transcripciones de texto.")
+    parser.add_argument("--output_dir", type=str, default=default_output_dir,
+        help="Directorio donde se guardarán las transcripciones de texto.")
     parser.add_argument("--lang", type=str, default="es",
                         help="Idioma para la transcripción (código ISO-639-1, ej. 'es', 'en').")
 
