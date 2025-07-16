@@ -4,6 +4,12 @@ import subprocess
 import time
 import psutil
 
+# Ruta absoluta del directorio raíz del proyecto (donde está main.py)
+project_root = os.path.dirname(os.path.abspath(__file__))
+
+
+####################################################################################################################
+
 
 print("== ORQUESTADOR GPT CLICKER ==")
 print()
@@ -47,8 +53,7 @@ def is_execute_actions_running():
 # Paso 2.1: Cargar pasos desde steps.json
 print("\n[1] Cargando pasos desde steps.json...")
 
-script_dir = os.path.dirname(os.path.abspath(__file__))
-steps_path = os.path.join(script_dir, "..", "parsed_steps", "steps.json")
+steps_path = os.path.join(project_root, "parsed_steps", "steps.json")
 
 with open(steps_path, "r", encoding="utf-8") as f:
     steps = json.load(f)
@@ -64,7 +69,7 @@ for index, step in enumerate(steps):
 
     # 1. Ejecutar módulo screenshot.py (espera a que termine)
     print("📸 Ejecutando captura de pantalla...")
-    subprocess.run(["python3", "scripts/screenshot.py"])
+    subprocess.run(["python3", "script/screenshot.py"])
 
     # 2. Esperar a que otro módulo termine el proceso 'execute_actions.py'
     print("⏳ Esperando a que se cierre 'execute_actions.py'...")

@@ -108,11 +108,16 @@ Devuelve exclusivamente la lista JSON.
         print("Respuesta recibida:\n", content)
         sys.exit(1)
 
+# Cargar pasos desde steps.json
+print("\n[1] Cargando pasos desde steps.json...")
+
+txt_path = os.path.join("input_text", "order.txt")
+steps_path = os.path.join("parsed_steps", "steps.json")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", default="/home/reboot-student/code/labs/PLCaid/input_text/order.txt", help="Ruta al archivo de entrada")
-    parser.add_argument("--output", default="/home/reboot-student/code/labs/PLCaid/parsed_steps/steps.json")
+    parser.add_argument("--input", default=txt_path, help="Ruta al archivo de entrada")
+    parser.add_argument("--output", default=steps_path, help="Ruta al archivo de salida para los pasos JSON")
     args = parser.parse_args()
 
     if not os.path.exists(args.input):
