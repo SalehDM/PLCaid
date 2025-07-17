@@ -1,58 +1,26 @@
 [
   {
     "step": 1,
-    "action": "busca el icono de 'Inicio'"
+    "action": "busca el icono de 'Papelera de reciclaje'"
   },
   {
     "step": 2,
-    "action": "haz clic en el icono de 'Inicio'"
+    "action": "haz doble clic en el icono de 'Papelera de reciclaje'"
   },
   {
     "step": 3,
-    "action": "espera a que se abra el menú de 'Inicio'"
+    "action": "espera a que se abra la papelera de reciclaje"
   },
   {
     "step": 4,
-    "action": "busca el icono de 'Todos los programas'"
+    "action": "busca el archivo 'texto.txt' en la papelera de reciclaje"
   },
   {
     "step": 5,
-    "action": "haz clic en el icono de 'Todos los programas'"
+    "action": "haz clic derecho en el archivo 'texto.txt'"
   },
   {
     "step": 6,
-    "action": "espera a que se abra el menú desplegable 'Todos los programas'"
-  },
-  {
-    "step": 7,
-    "action": "haz scroll en el menú desplegable 'Todos los programas'"
-  },
-  {
-    "step": 8,
-    "action": "busca el icono del navegador web"
-  },
-  {
-    "step": 9,
-    "action": "haz clic en el icono del navegador web"
-  },
-  {
-    "step": 10,
-    "action": "espera a que se abra el navegador web"
-  },
-  {
-    "step": 11,
-    "action": "busca el campo de entrada de la URL"
-  },
-  {
-    "step": 12,
-    "action": "haz clic en el campo de entrada de la URL"
-  },
-  {
-    "step": 13,
-    "action": "escribe 'www.youtube.es'"
-  },
-  {
-    "step": 14,
-    "action": "presiona 'Enter' para cargar la página"
+    "action": "selecciona 'Eliminar' en el menú contextual"
   }
 ]

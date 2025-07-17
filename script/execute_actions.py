@@ -6,7 +6,7 @@ import os
 time.sleep(2)
 
 # Ruta a la imagen en la carpeta capture (un nivel arriba)
-image_path = os.path.abspath(os.path.join(os.getcwd(), '..', 'capture', 'image.png'))
+image_path = os.path.abspath(os.path.join(os.getcwd(), 'capture', 'image.png'))
 
 # Encuentra un objeto en la pantalla usando la ruta
 location = pyautogui.locateOnScreen(image_path, confidence=0.8)
