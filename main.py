@@ -11,27 +11,27 @@ project_root = os.path.dirname(os.path.abspath(__file__))
 ####################################################################################################################
 
 
-print("== ORQUESTADOR GPT CLICKER ==")
-print()
+# print("== ORQUESTADOR GPT CLICKER ==")
+# print()
 
 # Paso 1: Ejecutar módulo Entrada y NLP
-print("\n[1] Ejecutando módulo Entrada y NLP...")
-print()
+# print("\n[1] Ejecutando módulo Entrada y NLP...")
+# print()
 
-opcion = input("Elige la entrada de usuario (1= Voz, 2= Texto): ")
+# opcion = input("Elige la entrada de usuario (1= Voz, 2= Texto): ")
 
-if opcion == "1":
+# if opcion == "1":
     # Ejecuta voice_to_text_whisper.py y espera que termine
-    result1 = subprocess.run(["python3", "script/voice_to_text_whisper.py"])
-    if result1.returncode == 0:
-        # Si el anterior terminó bien, ejecuta text_to_steps.py
-        subprocess.run(["python3", "script/text_to_steps.py"])
-    else:
-        print("Error: voice_to_text_whisper.py no finalizó correctamente.")
-elif opcion == "2":
+result1 = subprocess.run(["python3", "script/voice_to_text_whisper.py"])
+if result1.returncode == 0:
+    # Si el anterior terminó bien, ejecuta text_to_steps.py
     subprocess.run(["python3", "script/text_to_steps.py"])
 else:
-    print("Opción no válida.")
+    print("Error: voice_to_text_whisper.py no finalizó correctamente.")
+# elif opcion == "2":
+    # subprocess.run(["python3", "script/text_to_steps.py"])
+# else:
+    # print("Opción no válida.")
 
 ####################################################################################################################
 
