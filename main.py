@@ -71,11 +71,13 @@ for index, step in enumerate(steps):
     print("📸 Ejecutando captura de pantalla...")
     subprocess.run(["python3", "script/screenshot.py"])
 
-    # 2. Esperar a que otro módulo termine el proceso 'execute_actions.py'
-    print("⏳ Esperando a que se cierre 'execute_actions.py'...")
+    # 2. Esperar confirmación del usuario
+    input("🔔 Pulse 'Enter' para continuar...")
 
-    while is_execute_actions_running():
-        time.sleep(1)  # Espera 1 segundo antes de comprobar de nuevo
+    # 3. Lanzar proceso 'execute_actions.py'
+    print("🕹️ Ejecutando 'execute_actions.py'...")
+    subprocess.run(["python3", "script/execute_actions.py"])
+
 
     print("✅ Acción detectada como completada.")
 
