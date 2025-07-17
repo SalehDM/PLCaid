@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 import os, sys, json, argparse
 
 load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_key=os.getenv("API_KEY"))
 
 def parse_text_to_steps(text: str) -> list:
     """

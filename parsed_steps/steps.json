@@ -1,26 +1,42 @@
 [
   {
     "step": 1,
-    "action": "busca el icono de 'Papelera de reciclaje'"
+    "action": "busca el icono de 'Inicio'"
   },
   {
     "step": 2,
-    "action": "haz doble clic en el icono de 'Papelera de reciclaje'"
+    "action": "haz clic en el icono de 'Inicio'"
   },
   {
     "step": 3,
-    "action": "espera a que se abra la papelera de reciclaje"
+    "action": "espera a que se abra el menú de 'Inicio'"
   },
   {
     "step": 4,
-    "action": "busca el archivo 'texto.txt' en la papelera de reciclaje"
+    "action": "busca el icono de 'Todos los programas'"
   },
   {
     "step": 5,
-    "action": "haz clic derecho en el archivo 'texto.txt'"
+    "action": "haz clic en el icono de 'Todos los programas'"
   },
   {
     "step": 6,
-    "action": "selecciona 'Eliminar' en el menú contextual"
+    "action": "espera a que se abra el menú desplegable 'Todos los programas'"
+  },
+  {
+    "step": 7,
+    "action": "haz scroll en el menú desplegable 'Todos los programas'"
+  },
+  {
+    "step": 8,
+    "action": "busca el icono del explorador de archivos"
+  },
+  {
+    "step": 9,
+    "action": "haz clic en el icono del explorador de archivos"
+  },
+  {
+    "step": 10,
+    "action": "espera a que se abra el explorador de archivos"
   }
 ]

@@ -3,6 +3,7 @@ import json
 import subprocess
 import time
 import psutil
+from recorte import analizar_iconos
 
 # Ruta absoluta del directorio raíz del proyecto (donde está main.py)
 project_root = os.path.dirname(os.path.abspath(__file__))
@@ -72,7 +73,8 @@ for index, step in enumerate(steps):
     subprocess.run(["python3", "script/screenshot.py"])
 
     # 2. Esperar confirmación del usuario
-    input("🔔 Pulse 'Enter' para continuar...")
+    
+    analizar_iconos.main(action)
 
     # 3. Lanzar proceso 'execute_actions.py'
     print("🕹️ Ejecutando 'execute_actions.py'...")
@@ -80,6 +82,7 @@ for index, step in enumerate(steps):
 
 
     print("✅ Acción detectada como completada.")
+    input()
 
 print("\n🎉 Todos los pasos han sido ejecutados.")
 
