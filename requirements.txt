@@ -11,9 +11,11 @@ jiter==0.10.0
 mss==10.0.0
 numpy==2.3.1
 openai==1.95.1
+opencv-python==4.12.0.88
 pillow==11.3.0
 psutil==7.0.0
 PyAudio==0.2.14
+pyautogui==0.9.54
 pycparser==2.22
 pydantic==2.11.7
 pydantic_core==2.33.2
