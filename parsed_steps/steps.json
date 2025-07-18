@@ -1,42 +1,18 @@
 [
   {
     "step": 1,
-    "action": "busca el icono de 'Inicio'"
+    "action": "Inicio"
   },
   {
     "step": 2,
-    "action": "haz clic en el icono de 'Inicio'"
+    "action": "Todos los programas"
   },
   {
     "step": 3,
-    "action": "espera a que se abra el menú de 'Inicio'"
+    "action": "Internet Explorer"
   },
   {
     "step": 4,
-    "action": "busca el icono de 'Todos los programas'"
-  },
-  {
-    "step": 5,
-    "action": "haz clic en el icono de 'Todos los programas'"
-  },
-  {
-    "step": 6,
-    "action": "espera a que se abra el menú desplegable 'Todos los programas'"
-  },
-  {
-    "step": 7,
-    "action": "haz scroll en el menú desplegable 'Todos los programas'"
-  },
-  {
-    "step": 8,
-    "action": "busca el icono del explorador de archivos"
-  },
-  {
-    "step": 9,
-    "action": "haz clic en el icono del explorador de archivos"
-  },
-  {
-    "step": 10,
-    "action": "espera a que se abra el explorador de archivos"
+    "action": "Favoritos"
   }
 ]

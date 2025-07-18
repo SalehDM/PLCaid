@@ -6,6 +6,9 @@ import shutil
 import numpy as np
 from dotenv import load_dotenv
 from openai import OpenAI
+import pytesseract
+from pytesseract import Output
+
 
 # ==== CARGAR API KEY ====
 load_dotenv()
@@ -169,37 +172,114 @@ def analizar_icono_con_gpt(icon_path):
     except Exception as e:
         return f"❌ Error al analizar: {e}"
 
-# ==== 5. ELEGIR ÍCONO MÁS RELEVANTE ====
-def elegir_icono_mas_relevante(icon_paths, descripcion):
-    mensaje = [
-        {"type": "text", "text": f"De los siguientes íconos, ¿cuál se relaciona más con: '{descripcion}'? Responde solo con el número (por ejemplo: 2)."}
-    ]
+# ==== 5. SELECCIONAR ELEMENTO MÁS RELEVANTE ====
+def seleccionar_elemento_mas_relevante(elementos, descripcion):
+    def preguntar_a_gpt(elementos_lote, descripcion, etapa="primaria"):
+        mensaje = [
+            {
+                "type": "text",
+                "text": (
+                    f"Etapa {etapa}: De los siguientes recortes visuales de una interfaz, ¿cuál representa mejor la descripción: '{descripcion}'?\n"
+                    "Elige solo uno y responde SOLO con el número (por ejemplo: '2')."
+                )
+            }
+        ]
 
-    for i, path in enumerate(icon_paths, 1):
-        with open(path, "rb") as img_file:
-            image_b64 = base64.b64encode(img_file.read()).decode("utf-8")
-        mensaje.append({
-            "type": "image_url",
-            "image_url": {"url": f"data:image/png;base64,{image_b64}", "detail": "low"}
-        })
+        for i, (path, _) in enumerate(elementos_lote, 1):
+            with open(path, "rb") as img_file:
+                image_b64 = base64.b64encode(img_file.read()).decode("utf-8")
+            mensaje.append({
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/png;base64,{image_b64}",
+                    "detail": "low"
+                }
+            })
 
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": "Eres un experto en diseño de interfaces de usuario."},
-            {"role": "user", "content": mensaje}
-        ],
-        max_tokens=20,
-        temperature=0.2,
-    )
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "Eres un experto en interfaces gráficas de usuario."},
+                {"role": "user", "content": mensaje}
+            ],
+            max_tokens=10,
+            temperature=0.2,
+        )
 
-    respuesta = response.choices[0].message.content
-    print(f"📌 GPT seleccionó: {respuesta}")
+        respuesta = response.choices[0].message.content.strip()
+        print(f"📌 GPT seleccionó en etapa {etapa}: {respuesta}")
+        for i in range(1, len(elementos_lote) + 1):
+            if str(i) in respuesta:
+                return elementos_lote[i - 1]  # Devuelve (path, tipo)
+        return None
 
-    for i in range(1, len(icon_paths)+1):
-        if str(i) in respuesta:
-            return icon_paths[i - 1]
+    # Paso 1: dividir en lotes de 5
+    ganadores = []
+    for i in range(0, len(elementos), 5):
+        lote = elementos[i:i + 5]
+        ganador = preguntar_a_gpt(lote, descripcion, etapa="primaria")
+        if ganador:
+            ganadores.append(ganador)
+
+    if not ganadores:
+        print("❌ No se pudo seleccionar ningún elemento en la etapa primaria.")
+        return None
+
+    if len(ganadores) == 1:
+        return ganadores[0][0]  # Ruta del archivo
+
+    # Paso 2: ronda final entre los ganadores
+    finalista = preguntar_a_gpt(ganadores, descripcion, etapa="final")
+    if finalista:
+        return finalista[0]
+
+    print("❌ No se pudo seleccionar un elemento final.")
     return None
+
+
+
+# ==== CLASE PARA DETECCIÓN DE ELEMENTOS ====
+class UIElementDetector:
+    def __init__(self, padding=6):
+        self.padding = padding
+
+    def detectar_textos(self, image, output_dir="elementos_ui", tipo="texto"):
+        os.makedirs(output_dir, exist_ok=True)
+        data = pytesseract.image_to_data(image, output_type=Output.DICT, lang="eng")
+
+        elementos = []
+        for i in range(len(data["text"])):
+            text = data["text"][i].strip()
+            conf = int(data["conf"][i])
+            if text and conf > 60:
+                x, y, w, h = data["left"][i], data["top"][i], data["width"][i], data["height"][i]
+                x1 = max(0, x - self.padding)
+                y1 = max(0, y - self.padding)
+                x2 = min(image.shape[1], x + w + self.padding)
+                y2 = min(image.shape[0], y + h + self.padding)
+
+                recorte = image[y1:y2, x1:x2]
+                filename = os.path.join(output_dir, f"{tipo}_{i+1:03d}.png")
+                cv2.imwrite(filename, recorte)
+                elementos.append((filename, text))
+        return elementos
+
+    def detectar_pestanas(self, image, output_dir="elementos_ui"):
+        os.makedirs(output_dir, exist_ok=True)
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        _, binaria = cv2.threshold(gray, 180, 255, cv2.THRESH_BINARY_INV)
+
+        contornos, _ = cv2.findContours(binaria, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        elementos = []
+
+        for i, c in enumerate(contornos):
+            x, y, w, h = cv2.boundingRect(c)
+            if w > 50 and h < 60:  # Heurística de pestaña horizontal
+                recorte = image[y:y+h, x:x+w]
+                filename = os.path.join(output_dir, f"pestana_{i+1:03d}.png")
+                cv2.imwrite(filename, recorte)
+                elementos.append((filename, "posible pestaña"))
+        return elementos
 
 # ==== FUNCIÓN PRINCIPAL ====
 def main(descripcion):
@@ -207,7 +287,7 @@ def main(descripcion):
 
     IMAGE_PATH = "screenshots/pantalla.png"
     OUTPUT_DIR = "iconos_recortados"
-    FINAL_ICON_DIR = "../capture"
+    FINAL_ICON_DIR = "capture"
     JSON_OUTPUT = "iconos_descripciones.json"
 
     print("\n📷 Dividiendo imagen en cuadrantes...")
@@ -222,31 +302,48 @@ def main(descripcion):
 
     print(f"🔎 Analizando cuadrante: {cuadrante_path}\n")
     detector = IconDetector(min_size=16, max_size=150, padding=6)
+    ui_detector = UIElementDetector(padding=6)
 
     try:
         image, iconos = detector.detect_icons(cuadrante_path)
-        if not iconos:
-            print("❌ No se detectaron iconos.")
+        paths_iconos = detector.crop_icons(image, iconos, output_dir="iconos_recortados")
+
+        elementos_texto = ui_detector.detectar_textos(image)
+        elementos_pestanas = ui_detector.detectar_pestanas(image)
+
+        elementos_combinados = [(path, "icono") for path in paths_iconos]
+        elementos_combinados += [(path, "texto") for path, _ in elementos_texto]
+        elementos_combinados += [(path, "pestana") for path, _ in elementos_pestanas]
+
+        if not elementos_combinados:
+            print("❌ No se detectó ningún elemento visual en el cuadrante.")
             return
 
-        paths = detector.crop_icons(image, iconos, OUTPUT_DIR)
-        icono_elegido = elegir_icono_mas_relevante(paths, descripcion)
+        elemento_elegido = seleccionar_elemento_mas_relevante(elementos_combinados, descripcion)
 
-        if icono_elegido:
-            filename = os.path.basename(icono_elegido)
-            print(f"\n🖼️ Analizando ícono seleccionado: {filename}")
-            descripcion_final = analizar_icono_con_gpt(icono_elegido)
+        if elemento_elegido:
+            filename = os.path.basename(elemento_elegido)
+            print(f"\n🖼️ Analizando elemento seleccionado: {filename}")
+            descripcion_final = analizar_icono_con_gpt(elemento_elegido)
 
             os.makedirs(FINAL_ICON_DIR, exist_ok=True)
             ruta_final = os.path.join(FINAL_ICON_DIR, "image.png")
-            cv2.imwrite(ruta_final, cv2.imread(icono_elegido))
+            cv2.imwrite(ruta_final, cv2.imread(elemento_elegido))
 
+            # Guardar en JSON
+            if os.path.exists(JSON_OUTPUT):
+                with open(JSON_OUTPUT, "r", encoding="utf-8") as f:
+                    data_existente = json.load(f)
+            else:
+                data_existente = {}
+
+            data_existente[filename] = descripcion_final
             with open(JSON_OUTPUT, "w", encoding="utf-8") as f:
-                json.dump({filename: descripcion_final}, f, indent=4, ensure_ascii=False)
+                json.dump(data_existente, f, indent=4, ensure_ascii=False)
 
-            print(f"\n✅ Ícono relevante guardado en '{ruta_final}' y descripción en '{JSON_OUTPUT}'\n")
+            print(f"\n✅ Elemento relevante guardado en '{ruta_final}' y descripción en '{JSON_OUTPUT}'\n")
         else:
-            print("❌ No se pudo identificar el ícono más relevante.")
+            print("❌ No se pudo identificar el elemento más relevante.")
     except Exception as e:
         print(f"❌ Error general: {e}")
 
@@ -260,4 +357,3 @@ if __name__ == "__main__":
     else:
         descripcion_input = input("🔤 ¿Qué estás buscando? Describe el ícono o función: ").strip()
         main(descripcion_input)
-

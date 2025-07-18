@@ -20,8 +20,8 @@ if location:
     pyautogui.moveTo(center_x, center_y, duration=0.5)
     pyautogui.click()
 
-    texto = "Hola caracola!!!"
-    pyautogui.write(texto, interval=0.05)
-    print(f"✔ Escribiendo texto: {texto}")
+    # texto = "Hola caracola!!!"
+    # pyautogui.write(texto, interval=0.05)
+    # print(f"✔ Escribiendo texto: {texto}")
 else:
     print(f"❌ No se encontró la imagen en pantalla: {image_path}")

@@ -29,8 +29,8 @@ if opcion == "1":
         subprocess.run(["python3", "script/text_to_steps.py"])
     else:
         print("Error: voice_to_text_whisper.py no finalizó correctamente.")
-elif opcion == "2":
-    subprocess.run(["python3", "script/text_to_steps.py"])
+# elif opcion == "2":
+#     subprocess.run(["python3", "script/text_to_steps.py"])
 else:
     print("Opción no válida.")
 
@@ -72,9 +72,11 @@ for index, step in enumerate(steps):
     print("📸 Ejecutando captura de pantalla...")
     subprocess.run(["python3", "script/screenshot.py"])
 
-    # 2. Esperar confirmación del usuario
+    # 2. Realizar recorte y análisis de iconos
     
     analizar_iconos.main(action)
+    time.sleep(3)
+    # input("Presiona Enter para continuar...")
 
     # 3. Lanzar proceso 'execute_actions.py'
     print("🕹️ Ejecutando 'execute_actions.py'...")
@@ -82,18 +84,19 @@ for index, step in enumerate(steps):
 
 
     print("✅ Acción detectada como completada.")
-    input()
+    time.sleep(3)  # Espera un segundo antes del siguiente paso
+    # input("Presiona Enter para continuar...")
 
 print("\n🎉 Todos los pasos han sido ejecutados.")
 
 ####################################################################################################################
 
 # Paso 3: Analizar imagen con GPT Vision (simulado)
-print("\n[3] Analizando imagen con GPT Vision...")
-subprocess.run(["python", "scripts/vision_prompt_api.py"])
+# print("\n[3] Analizando imagen con GPT Vision...")
+# subprocess.run(["python", "scripts/vision_prompt_api.py"])
 
-# Paso 4: Ejecutar acción basada en coordenadas
-print("\n[4] Ejecutando acción...")
-subprocess.run(["python", "scripts/execute_actions.py"])
+# # Paso 4: Ejecutar acción basada en coordenadas
+# print("\n[4] Ejecutando acción...")
+# subprocess.run(["python", "scripts/execute_actions.py"])
 
 print("\n✅ Flujo completo ejecutado.")
