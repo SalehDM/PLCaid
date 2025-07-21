@@ -2,9 +2,8 @@ import os
 from qdrant_client import QdrantClient, models
 from sentence_transformers import SentenceTransformer
 from datetime import datetime
-import uuid
-import sys
-from dotenv import load_dotenv # Importar load_dotenv
+import uuid # Importar la librería uuid para generar IDs únicos
+import sys # Importar sys para reconfigurar stdout/stderr
 
 # --- Configurar la codificación de la salida de la consola al inicio ---
 try:
@@ -15,59 +14,45 @@ except AttributeError:
 except Exception as e:
     print(f"WARNING: No se pudo reconfigurar la codificacion de la consola: {e}", flush=True)
 
-# --- Cargar variables de entorno al inicio ---
-load_dotenv()
-
 # --- Configuración ---
-# Ahora obtenemos la URL y la API Key de Qdrant desde el archivo .env
-QDRANT_URL = os.getenv("QDRANT_URL")
-QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
-
+QDRANT_HOST = "localhost"
+QDRANT_PORT = 6333 # Puerto por defecto de Qdrant
 COLLECTION_NAME_UI_ELEMENTS = "ui_elements"
 COLLECTION_NAME_TASK_FLOWS = "task_flows"
+# Modelo de embeddings CPU-friendly (all-MiniLM-L6-v2 es muy ligero y bueno)
 EMBEDDING_MODEL_NAME = 'sentence-transformers/all-MiniLM-L6-v2'
-
-# Verificar que las variables de Qdrant están configuradas
-if not QDRANT_URL:
-    print("ERROR: La variable de entorno QDRANT_URL no está configurada en .env", flush=True)
-    sys.exit(1)
-# Aunque la API Key podría ser opcional en algunos setups auto-gestionados,
-# si se está migrando de local con la intención de usar API Key, es mejor hacerla obligatoria.
-if not QDRANT_API_KEY:
-    print("ERROR: La variable de entorno QDRANT_API_KEY no está configurada en .env. Es crucial para la autenticación de Qdrant.", flush=True)
-    sys.exit(1)
 
 # Inicializar el modelo de embeddings
 try:
+    # Se especifica device='cpu' para asegurar que se use la CPU
     embedding_model = SentenceTransformer(EMBEDDING_MODEL_NAME, device='cpu')
     EMBEDDING_DIM = embedding_model.get_sentence_embedding_dimension()
     print(f"INFO: Modelo de embeddings '{EMBEDDING_MODEL_NAME}' cargado en CPU. Dimensión: {EMBEDDING_DIM}", flush=True)
-    sys.stdout.flush()
+    sys.stdout.flush() # Forzar el flush
 except Exception as e:
     print(f"ERROR: Error al cargar el modelo de embeddings: {e}", flush=True)
     print("Asegúrate de tener 'sentence-transformers' instalado y de que el modelo se pueda descargar.", flush=True)
-    sys.stdout.flush()
+    sys.stdout.flush() # Forzar el flush
     exit(1)
 
 # Inicializar el cliente de Qdrant
 try:
-    # Conexión a Qdrant usando la URL y la API Key de las variables de entorno
-    client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY, timeout=30)
-    # Se añade un pequeño test para verificar la conexión inicial
-    # Esto lanzará una excepción si la conexión falla (ej. Qdrant no está accesible o API Key es incorrecta)
-    client.get_collections()
-    print(f"INFO: Cliente Qdrant conectado a {QDRANT_URL} (con API Key)", flush=True)
-    sys.stdout.flush()
+    # Conexión a un Qdrant local. Si usas Docker, asegúrate de que el puerto 6333 esté mapeado.
+    # Si Qdrant no está corriendo, este cliente no fallará inmediatamente, sino en la primera operación.
+    client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
+    print(f"INFO: Cliente Qdrant conectado a {QDRANT_HOST}:{QDRANT_PORT}", flush=True)
+    sys.stdout.flush() # Forzar el flush
 except Exception as e:
-    print(f"ERROR: Error al conectar con Qdrant en {QDRANT_URL}: {e}", flush=True)
-    print("Asegúrate de que el servidor Qdrant esté corriendo y accesible, y que la QDRANT_API_KEY sea correcta.", flush=True)
-    sys.stdout.flush()
+    print(f"ERROR: Error al conectar con Qdrant: {e}", flush=True)
+    print("Asegúrate de que el servidor Qdrant esté corriendo.", flush=True)
+    sys.stdout.flush() # Forzar el flush
     exit(1)
 
 def create_collections():
     """
     Crea las colecciones en Qdrant si no existen.
     """
+    # Configuración de optimizadores como un diccionario directamente
     optimizers_config_dict = {
         "deleted_threshold": 0.2,
         "vacuum_min_vector_number": 100,
@@ -76,6 +61,7 @@ def create_collections():
         "memmap_threshold": 20000,
     }
 
+    # Colección para elementos de UI (botones, iconos, pestañas, etc.)
     if not client.collection_exists(collection_name=COLLECTION_NAME_UI_ELEMENTS):
         client.create_collection(
             collection_name=COLLECTION_NAME_UI_ELEMENTS,
@@ -88,6 +74,7 @@ def create_collections():
         print(f"INFO: Colección '{COLLECTION_NAME_UI_ELEMENTS}' ya existe.", flush=True)
         sys.stdout.flush()
 
+    # Colección para flujos de tareas (ej. "abrir MicroWin" -> [pasos])
     if not client.collection_exists(collection_name=COLLECTION_NAME_TASK_FLOWS):
         client.create_collection(
             collection_name=COLLECTION_NAME_TASK_FLOWS,
@@ -123,13 +110,14 @@ def add_ui_element(description: str, element_type: str, image_path: str = None, 
     if metadata:
         payload.update(metadata)
 
+    # Generar un ID único para el punto
     point_id = str(uuid.uuid4().hex)
 
     client.upsert(
         collection_name=COLLECTION_NAME_UI_ELEMENTS,
         points=[
             models.PointStruct(
-                id=point_id,
+                id=point_id, # Se añade el ID único aquí
                 vector=vector,
                 payload=payload
             )
@@ -166,13 +154,14 @@ def add_task_flow(task_description: str, steps: list, metadata: dict = None):
     if metadata:
         payload.update(metadata)
 
+    # Generar un ID único para el punto
     point_id = str(uuid.uuid4().hex)
 
     client.upsert(
         collection_name=COLLECTION_NAME_TASK_FLOWS,
         points=[
             models.PointStruct(
-                id=point_id,
+                id=point_id, # Se añade el ID único aquí
                 vector=vector,
                 payload=payload
             )
@@ -195,11 +184,14 @@ def search_task_flow(query_text: str, limit: int = 1, score_threshold: float = 0
     )
     return [hit.payload for hit in search_result]
 
+
+# Este bloque se ejecutará solo si el script se llama directamente
 if __name__ == "__main__":
     print("--- Inicializando Knowledge Manager ---", flush=True)
     sys.stdout.flush()
     create_collections()
 
+    # --- Ejemplos de uso ---
     print("\n--- Añadiendo elementos de UI de ejemplo ---", flush=True)
     sys.stdout.flush()
     add_ui_element("icono de inicio de Windows", "icono", metadata={"os": "Windows XP"})
@@ -282,4 +274,3 @@ if __name__ == "__main__":
 
     print("\n--- Knowledge Manager listo ---", flush=True)
     sys.stdout.flush()
-    
