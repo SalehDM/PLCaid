@@ -1,136 +1,177 @@
-from openai import OpenAI
+import os
+import sys
+import json
+import argparse
 from dotenv import load_dotenv
-import os, sys, json, argparse
+from openai import OpenAI
+from openai import OpenAIError # Import specific OpenAI error for better catching
 
+# --- Configurar la codificación de la salida de la consola al inicio ---
+try:
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
+except AttributeError:
+    # reconfigure no está disponible en todas las versions de Python o entornos
+    pass
+except Exception as e:
+    print(f"WARNING: No se pudo reconfigurar la codificacion de la consola: {e}", flush=True)
+
+# ==== CARGAR API KEY ====
 load_dotenv()
-client = OpenAI(api_key=os.getenv("API_KEY"))
+OPENAI_API_KEY = os.getenv("API_KEY") # Usar la variable de entorno para OpenAI
 
-def parse_text_to_steps(text: str) -> list:
+if not OPENAI_API_KEY:
+    print("ERROR: La variable de entorno API_KEY (para OpenAI) no esta configurada. Por favor, configurala en tu archivo .env", flush=True)
+    sys.exit(1)
+
+client = None # Initialize client to None
+try:
+    client = OpenAI(api_key=OPENAI_API_KEY)
+    # Opcional: Puedes añadir una pequeña prueba de conexión aquí si quieres,
+    # pero ten cuidado con los límites de tasa y el tiempo de respuesta.
+    # Por ejemplo: client.models.list()
+except OpenAIError as e:
+    print(f"ERROR: Error al inicializar el cliente de OpenAI o al conectar con la API: {e}", flush=True)
+    sys.stdout.flush() # Asegurar que el error se imprima antes de salir
+    sys.exit(1)
+except Exception as e:
+    print(f"ERROR: Error inesperado al inicializar el cliente de OpenAI: {e}", flush=True)
+    sys.stdout.flush() # Asegurar que el error se imprima antes de salir
+    sys.exit(1)
+
+def generate_steps_from_instruction(instruction):
     """
-    Llama a la API de OpenAI para convertir un texto en pasos estructurados.
+    Genera una lista de pasos de automatización a partir de una instrucción dada,
+    utilizando un modelo de lenguaje.
     """
+    # Construye el prompt para el modelo de lenguaje
+    # Se ha añadido una guía explícita sobre cómo manejar instrucciones de prueba o declaraciones.
     prompt = f"""
-Eres un asistente que ayuda a un robot a ejecutar tareas en **Windows XP** exclusivamente.
+    Eres un asistente de automatización de interfaz de usuario. Tu tarea es generar una lista de pasos detallados para automatizar una tarea dada una instrucción.
+    Cada paso debe ser una acción clara y concisa que se pueda ejecutar en una interfaz de usuario.
+    La respuesta DEBE ser un objeto JSON con una única clave "steps", cuyo valor es un array de objetos de paso, siguiendo este esquema:
+    {{
+      "steps": [
+        {{ "step": INTEGER, "action": "STRING" }},
+        {{ "step": INTEGER, "action": "STRING" }},
+        ...
+      ]
+    }}
 
-El robot solo puede:
-- Buscar elementos visuales (como iconos, botones, menús, submenús o campos de entrada).
-- Hacer scroll con la rueda del ratón en menús desplegables o contextuales grandes que lo requieran; como, por ejemplo, el menú 'Todos los programas'.
-- Hacer clic o doble clic con el botón izquierdo o derecho del ratón sobre los elementos visuales.
-- Añadir texto en campos de entrada, haciendo clic previamente en la primera línea disponible.
-- Usar atajos de teclado como 'Enter', 'Tab', 'Esc', 'Ctrl+C', 'Ctrl+V', etc.
+    **Reglas importantes:**
+    1. Si la instrucción es una simple declaración, una prueba, un saludo, o no implica una serie de acciones de automatización complejas,
+       genera UN ÚNICO paso que refleje la intención de la instrucción o un paso simple de reconocimiento.
+    2. No intentes inferir acciones de interfaz de usuario para instrucciones que no las implican directamente.
+    3. Para acciones de "búsqueda", usa "busca el icono de 'X'", "busca el botón de 'Y'", "busca la pestaña de 'Z'", "busca el campo de entrada de 'W'".
+    4. Para acciones de "clic", usa "haz clic en el icono de 'X'", "haz clic en el botón de 'Y'", etc.
+    5. Para escribir, usa "escribe 'texto a escribir'".
+    6. Para presionar una tecla, usa "presiona 'tecla'".
+    7. Para esperar, usa "espera X segundos" o "espera a que se abra la ventana 'Nombre de la ventana'".
 
-Por lo tanto, para completar una tarea, debe buscar los elementos en la interfaz visual (por ejemplo: el botón de inicio, los accesos directos, los menús del sistema) y realizar las acciones permitidas pertinentes para conseguir el objetivo solicitado.
-Incluye pausas entre pasos si es necesario, como por ejemplo, "espera 2 segundos" o "espera a que se abra la ventana".
-Devuelve una **lista de pasos en formato JSON**, con los campos `"step"` y `"action"`.
+    **Ejemplos:**
+    - Instrucción: "abre la aplicación MicroWin"
+      Respuesta JSON esperada:
+      {{
+        "steps": [
+          {{ "step": 1, "action": "busca el icono de 'Inicio'" }},
+          {{ "step": 2, "action": "haz clic en el icono de 'Inicio'" }},
+          {{ "step": 3, "action": "espera a que se abra el menú de 'Inicio'" }},
+          {{ "step": 4, "action": "busca el icono de 'MicroWin'" }},
+          {{ "step": 5, "action": "haz clic en el icono de 'MicroWin'" }},
+          {{ "step": 6, "action": "espera a que se abra la aplicación MicroWin" }}
+        ]
+      }}
 
-Ejemplos:
+    - Instrucción: "probando la nueva configuración del audio"
+      Respuesta JSON esperada:
+      {{
+        "steps": [
+          {{ "step": 1, "action": "reconoce que la instrucción es una prueba de audio" }}
+        ]
+      }}
 
-Ir a la página 'www.youtube.es':
-[
-  {{ "step": 1, "action": "busca el icono de 'Inicio'" }},
-  {{ "step": 2, "action": "haz clic en el icono de 'Inicio'" }},
-  {{ "step": 3, "action": "espera a que se abra el menú de 'Inicio'" }},
-  {{ "step": 4, "action": "busca el icono de 'Todos los programas'" }},
-  {{ "step": 5, "action": "haz clic en el icono de 'Todos los programas'" }},
-  {{ "step": 6, "action": "espera a que se abra el menú desplegable 'Todos los programas'" }},
-  {{ "step": 7, "action": "haz scroll en el menú desplegable 'Todos los programas'" }},
-  {{ "step": 8, "action": "busca el icono del navegador web" }},
-  {{ "step": 9, "action": "haz clic en el icono del navegador web" }},
-  {{ "step": 10, "action": "espera a que se abra el navegador web" }},
-  {{ "step": 11, "action": "busca el campo de entrada de la URL" }},
-  {{ "step": 12, "action": "haz clic en el campo de entrada de la URL" }},
-  {{ "step": 13, "action": "escribe 'www.youtube.es'" }},
-  {{ "step": 14, "action": "presiona 'Enter' para cargar la página" }}
-]
+    - Instrucción: "Hola"
+      Respuesta JSON esperada:
+      {{
+        "steps": [
+          {{ "step": 1, "action": "saluda al usuario" }}
+        ]
+      }}
 
-Crear una carpeta nueva llamada 'Documentos':
-[
-  {{ "step": 1, "action": "busca el icono de 'Inicio'" }},
-  {{ "step": 2, "action": "haz clic en el icono de 'Inicio'" }},
-  {{ "step": 3, "action": "espera a que se abra el menú de 'Inicio'" }},
-  {{ "step": 4, "action": "busca el icono de 'Mi PC'" }},
-  {{ "step": 5, "action": "haz clic en el icono de 'Mi PC'" }},
-  {{ "step": 6, "action": "espera a que se abra la ventana de 'Mi PC'" }},
-  {{ "step": 7, "action": "busca el icono de 'Disco local (C:)'" }},
-  {{ "step": 8, "action": "haz doble clic en el icono de 'Disco local (C:)'" }},
-  {{ "step": 9, "action": "espera a que se abra la ventana del disco local" }},
-  {{ "step": 10, "action": "haz clic derecho en un espacio vacío dentro de la ventana" }},
-  {{ "step": 11, "action": "selecciona 'Nuevo' en el menú contextual" }},
-  {{ "step": 12, "action": "selecciona 'Carpeta' en el submenú" }},
-  {{ "step": 13, "action": "escribe 'Documentos' como nombre de la nueva carpeta" }},
-  {{ "step": 14, "action": "presiona 'Enter' para crear la carpeta" }}
-]
+    - Instrucción: "Cierra la ventana actual"
+      Respuesta JSON esperada:
+      {{
+        "steps": [
+          {{ "step": 1, "action": "presiona 'alt+f4'" }}
+        ]
+      }}
 
-Abrir la aplicación MicroWin:
-
-[
-  {{ "step": 1, "action": "busca el icono de 'Inicio'" }},
-  {{ "step": 2, "action": "haz clic en el icono de 'Inicio'" }},
-  {{ "step": 3, "action": "espera a que se abra el menú de 'Inicio'" }},
-  {{ "step": 4, "action": "busca el icono de 'Todos los programas'" }},
-  {{ "step": 5, "action": "haz clic en el icono de 'Todos los programas'" }},
-  {{ "step": 6, "action": "espera a que se abra el menú desplegable 'Todos los programas'" }},
-  {{ "step": 7, "action": "haz scroll en el menú desplegable 'Todos los programas'" }},
-  {{ "step": 8, "action": "busca el icono de 'MicroWin'" }},
-  {{ "step": 9, "action": "haz clic en el icono de 'MicroWin'" }},
-  {{ "step": 10, "action": "espera a que se abra la aplicación MicroWin" }}
-]
-
-
-Texto de entrada:
-\"\"\"
-{text}
-\"\"\"
-
-No expliques los pasos ni incluyas texto fuera del JSON.
-Devuelve exclusivamente la lista JSON.
-"""
-
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "Eres un asistente que estructura instrucciones visuales paso a paso."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.3
-    )
-
-    content = response.choices[0].message.content
-
-    cleaned_content = content.strip().strip("`")
-    if cleaned_content.startswith("json"):
-        cleaned_content = cleaned_content[4:].strip()
+    Instrucción: "{instruction}"
+    """
 
     try:
-        return json.loads(cleaned_content)
-    except json.JSONDecodeError:
-        print("[✗] No se pudo interpretar la respuesta de OpenAI como JSON.")
-        print("Respuesta recibida:\n", content)
-        sys.exit(1)
+        response = client.chat.completions.create(
+            model="gpt-4o", # O el modelo de OpenAI que prefieras
+            messages=[
+                {"role": "system", "content": "Genera pasos de automatizacion en formato JSON. La respuesta debe ser un objeto JSON con una clave 'steps' que contiene una lista de objetos de paso."},
+                {"role": "user", "content": prompt}
+            ],
+            response_format={"type": "json_object"}, # Solicitar respuesta en formato JSON de nivel superior
+            temperature=0.2,
+            max_tokens=500
+        )
+        
+        json_response_str = response.choices[0].message.content
+        
+        print(f"DEBUG: Raw JSON response from model: {json_response_str}", flush=True)
+        sys.stdout.flush() # Ensure this debug print is flushed
 
-# Cargar pasos desde steps.json
-print("\n[1] Cargando pasos desde steps.json...")
+        parsed_json = json.loads(json_response_str)
 
-txt_path = os.path.join("input_text", "order.txt")
-steps_path = os.path.join("parsed_steps", "steps.json")
+        # Validar y extraer la lista de pasos de la clave "steps"
+        if isinstance(parsed_json, dict) and "steps" in parsed_json and \
+           isinstance(parsed_json["steps"], list) and \
+           all(isinstance(item, dict) for item in parsed_json["steps"]):
+            return parsed_json["steps"]
+        else:
+            print(f"ERROR: El modelo no devolvio un objeto JSON con la clave 'steps' conteniendo una lista de objetos. Tipo recibido: {type(parsed_json)}", flush=True)
+            sys.stdout.flush()
+            return []
+
+    except json.JSONDecodeError as e:
+        print(f"ERROR: Error al parsear la respuesta JSON del modelo: {e}", flush=True)
+        print(f"DEBUG: JSON string que causo el error: {json_response_str}", flush=True)
+        sys.stdout.flush()
+        return []
+    except Exception as e:
+        print(f"ERROR: Error al generar pasos con el modelo de lenguaje: {e}", flush=True)
+        print(f"Detalles de la respuesta (si existe): {getattr(e, 'response', 'No response attribute')}", flush=True)
+        sys.stdout.flush()
+        return []
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--input", default=txt_path, help="Ruta al archivo de entrada")
-    parser.add_argument("--output", default=steps_path, help="Ruta al archivo de salida para los pasos JSON")
+    parser = argparse.ArgumentParser(description="Genera pasos de automatizacion a partir de una instruccion de texto.")
+    parser.add_argument("--input", required=True, help="Ruta al archivo de texto con la instruccion.")
+    parser.add_argument("--output", required=True, help="Ruta al archivo JSON donde se guardaran los pasos generados.")
     args = parser.parse_args()
 
-    if not os.path.exists(args.input):
-        print(f"[✗] El archivo '{args.input}' no existe.")
+    input_path = args.input
+    output_path = args.output
+
+    if not os.path.exists(input_path):
+        print(f"ERROR: El archivo de entrada no existe: {input_path}", flush=True)
+        sys.stdout.flush()
         sys.exit(1)
 
-    with open(args.input, "r", encoding="utf-8") as f:
-        order = f.read()
+    with open(input_path, "r", encoding="utf-8") as f:
+        instruction = f.read().strip()
 
-    steps = parse_text_to_steps(order)
+    print("[INFO] Generando pasos...", flush=True)
+    sys.stdout.flush()
+    steps = generate_steps_from_instruction(instruction)
 
-    os.makedirs(os.path.dirname(args.output), exist_ok=True)
-    with open(args.output, "w", encoding="utf-8") as f:
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
         json.dump(steps, f, indent=2, ensure_ascii=False)
-
-    print(f"[✓] Guardado en {args.output}")
+    print(f"[INFO] Pasos guardados en {output_path}", flush=True)
+    sys.stdout.flush()

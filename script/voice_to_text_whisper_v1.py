@@ -28,7 +28,7 @@ def transcribe_voice_input_whisper_direct_pyaudio(output_dir=default_output_dir,
 
     Args:
         output_dir (str): Directorio donde se guardará el archivo de texto transcrito.
-                          
+                        
         language (str): Idioma para la transcripción (ej. 'es' para español, 'en' para inglés).
                         Nota: Whisper usa códigos de idioma ISO-639-1 (ej. 'es', 'en').
     """
@@ -66,7 +66,7 @@ def transcribe_voice_input_whisper_direct_pyaudio(output_dir=default_output_dir,
     frames = []
 
     # Lee datos del stream de audio durante el tiempo especificado
-    for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
+    for _ in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
         try:
             data = stream.read(CHUNK)
             frames.append(data)

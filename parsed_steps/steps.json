@@ -1,18 +1,14 @@
 [
   {
     "step": 1,
-    "action": "Inicio"
+    "action": "busca el icono de 'Papelera de reciclaje'"
   },
   {
     "step": 2,
-    "action": "Todos los programas"
+    "action": "haz clic en el icono de 'Papelera de reciclaje'"
   },
   {
     "step": 3,
-    "action": "Internet Explorer"
-  },
-  {
-    "step": 4,
-    "action": "Favoritos"
+    "action": "espera a que se abra la ventana de 'Papelera de reciclaje'"
   }
 ]
