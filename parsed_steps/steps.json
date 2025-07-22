@@ -5,10 +5,22 @@
   },
   {
     "step": 2,
-    "action": "haz clic en el icono de 'Papelera de reciclaje'"
+    "action": "haz doble clic en el icono de 'Papelera de reciclaje'"
   },
   {
     "step": 3,
     "action": "espera a que se abra la ventana de 'Papelera de reciclaje'"
+  },
+  {
+    "step": 4,
+    "action": "haz clic en el botón de 'Vaciar la papelera de reciclaje'"
+  },
+  {
+    "step": 5,
+    "action": "espera a que aparezca el cuadro de diálogo de confirmación"
+  },
+  {
+    "step": 6,
+    "action": "haz clic en el botón de 'Sí' en el cuadro de diálogo de confirmación"
   }
 ]

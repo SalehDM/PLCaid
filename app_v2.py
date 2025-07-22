@@ -145,7 +145,7 @@ def ejecutar_main(instruccion):
         main_script_path = os.path.join(os.path.dirname(__file__), 'main.py')
         resultado = subprocess.run(
             ["python", main_script_path, instruccion],
-            capture_output=True, text=True, check=True
+            capture_output=True, text=True, check=True, encoding="utf-8"
         )
         salida = resultado.stdout
         st.success("✅ main.py ejecutado correctamente.")
@@ -183,28 +183,27 @@ if modo == "📝 Texto":
         else:
             st.warning("⚠️ Escribe alguna instrucción.")
 
-elif modo == "🎙️ Voz":
-    if st.button("🎧 Grabar voz"):
-        # Asegurarse de que el directorio para la transcripción exista
-        os.makedirs(os.path.dirname(ORDER_FILE_PATH), exist_ok=True)
+elif modo == "🎙️ Voz" and st.button("🎧 Grabar voz"):
+    # Asegurarse de que el directorio para la transcripción exista
+    os.makedirs(os.path.dirname(ORDER_FILE_PATH), exist_ok=True)
 
-        audio_path = grabar_audio(duracion=duracion_grabacion)
-        transcripcion = transcribir_audio(audio_path)
-        
-        st.text_area("🗣️ Transcripción de voz:", transcripcion, height=100)
-        
-        # Guardar la transcripción en order.txt
-        with open(ORDER_FILE_PATH, "w", encoding="utf-8") as f:
-            f.write(transcripcion)
-        st.info(f"INFO: Transcripción guardada en: {ORDER_FILE_PATH}")
+    audio_path = grabar_audio(duracion=duracion_grabacion)
+    transcripcion = transcribir_audio(audio_path)
+    
+    st.text_area("🗣️ Transcripción de voz:", transcripcion, height=100)
+    
+    # Guardar la transcripción en order.txt
+    with open(ORDER_FILE_PATH, "w", encoding="utf-8") as f:
+        f.write(transcripcion)
+    st.info(f"INFO: Transcripción guardada en: {ORDER_FILE_PATH}")
 
-        if "⚠️" not in transcripcion and "❌" not in transcripcion:
-            linea = f"[{datetime.now().strftime('%H:%M:%S')}] {transcripcion}"
-            st.session_state.historial.append(linea)
-            guardar_historial(linea)
-            ejecutar_main(transcripcion)
-        else:
-            st.warning("⚠️ La transcripción contiene errores o no se entendió la voz. No se enviará a main.py.")
+    if "⚠️" not in transcripcion and "❌" not in transcripcion:
+        linea = f"[{datetime.now().strftime('%H:%M:%S')}] {transcripcion}"
+        st.session_state.historial.append(linea)
+        guardar_historial(linea)
+        ejecutar_main(transcripcion)
+    else:
+        st.warning("⚠️ La transcripción contiene errores o no se entendió la voz. No se enviará a main.py.")
 
 
 st.markdown("---")

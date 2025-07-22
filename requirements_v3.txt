@@ -1,0 +1,13 @@
+streamlit>=1.36.0
+pyautogui>=0.9.54
+python-dotenv>=1.0.1
+openai>=1.35.13
+qdrant-client>=1.9.0
+sentence-transformers>=2.7.0
+sounddevice>=0.4.6
+SpeechRecognition>=3.10.0
+scipy>=1.13.1
+Pillow>=10.4.0
+pytesseract>=0.3.10
+mss>=9.0.1
+numpy>=1.26.4

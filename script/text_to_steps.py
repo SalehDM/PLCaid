@@ -40,114 +40,170 @@ except Exception as e:
     sys.exit(1)
 
 def generate_steps_from_instruction(instruction):
-    """
-    Genera una lista de pasos de automatización a partir de una instrucción dada,
-    utilizando un modelo de lenguaje.
-    """
-    # Construye el prompt para el modelo de lenguaje
-    # Se ha añadido una guía explícita sobre cómo manejar instrucciones de prueba o declaraciones.
-    prompt = f"""
-    Eres un asistente de automatización de interfaz de usuario. Tu tarea es generar una lista de pasos detallados para automatizar una tarea dada una instrucción.
-    Cada paso debe ser una acción clara y concisa que se pueda ejecutar en una interfaz de usuario.
-    La respuesta DEBE ser un objeto JSON con una única clave "steps", cuyo valor es un array de objetos de paso, siguiendo este esquema:
-    {{
-      "steps": [
-        {{ "step": INTEGER, "action": "STRING" }},
-        {{ "step": INTEGER, "action": "STRING" }},
-        ...
-      ]
-    }}
+  """
+  Genera una lista de pasos de automatización a partir de una instrucción dada,
+  utilizando un modelo de lenguaje.
+  """
+  # Construye el prompt para el modelo de lenguaje
+  # Se ha añadido una guía explícita sobre cómo manejar instrucciones de prueba o declaraciones,
+  # y se han refinado las acciones y ejemplos para mayor claridad y consistencia.
+  prompt = f"""
+  Eres un asistente experto en **automatización de interfaces gráficas (GUI)**, especializado en entornos de **sistemas PLC** y aplicaciones relacionadas.
+  Tu objetivo es transformar una instrucción de usuario en una secuencia de pasos atómicos y ejecutables para la automatización.
+  Cada paso debe describir una acción clara sobre un elemento de la interfaz de usuario o una operación de sistema, enfocada en la interacción directa con la GUI.
 
-    **Reglas importantes:**
-    1. Si la instrucción es una simple declaración, una prueba, un saludo, o no implica una serie de acciones de automatización complejas,
-       genera UN ÚNICO paso que refleje la intención de la instrucción o un paso simple de reconocimiento.
-    2. No intentes inferir acciones de interfaz de usuario para instrucciones que no las implican directamente.
-    3. Para acciones de "búsqueda", usa "busca el icono de 'X'", "busca el botón de 'Y'", "busca la pestaña de 'Z'", "busca el campo de entrada de 'W'".
-    4. Para acciones de "clic", usa "haz clic en el icono de 'X'", "haz clic en el botón de 'Y'", etc.
-    5. Para escribir, usa "escribe 'texto a escribir'".
-    6. Para presionar una tecla, usa "presiona 'tecla'".
-    7. Para esperar, usa "espera X segundos" o "espera a que se abra la ventana 'Nombre de la ventana'".
+  La respuesta **DEBE** ser un objeto JSON con una única clave "steps", cuyo valor es un array de objetos de paso. El formato estricto es:
+  {{{{
+    "steps": [
+      {{{{ "step": INTEGER, "action": "STRING" }}}},
+      {{{{ "step": INTEGER, "action": "STRING" }}}},
+      // ...
+    ]
+  }}}}
 
-    **Ejemplos:**
-    - Instrucción: "abre la aplicación MicroWin"
-      Respuesta JSON esperada:
-      {{
+  ---
+  **Reglas y Formato de Acciones:**
+
+  1.  **Prioriza la interacción con elementos de la GUI.** Piensa en términos de "buscar", "hacer clic", "escribir", "seleccionar".
+  2.  **Precisión en la Identificación de Elementos:** Al referirte a un elemento, sé lo más descriptivo posible. Usa "[tipo de elemento] de '[texto/nombre visible]'".
+      * **Tipos de Elementos comunes:** `icono`, `botón`, `campo de texto`, `pestaña`, `ventana`, `menú desplegable`, `enlace`, `casilla de verificación`, `elemento de lista`, `área de texto`, `campo de número`, `control deslizante`.
+  3.  **Lista de Acciones Atómicas y Ejecutables:** Utiliza **SOLO** las siguientes estructuras de acción. Si una instrucción no encaja, intenta simplificarla o recurre a la acción "instrucción no clara".
+
+      * **Búsqueda:** `busca el [tipo de elemento] de '[texto/nombre del elemento]'`
+          * Ej: "busca el icono de 'Inicio'", "busca el botón de 'Aceptar'", "busca el campo de texto de 'Nombre de usuario'"
+      * **Clic:** `haz clic en el [tipo de elemento] de '[texto/nombre del elemento]'`
+          * Ej: "haz clic en el botón de 'Cancelar'", "haz clic en el icono de 'Mi PC'"
+      * **Doble Clic:** `haz doble clic en el [tipo de elemento] de '[texto/nombre del elemento]'`
+          * Ej: "haz doble clic en el icono de 'Documentos'"
+      * **Escribir:** `escribe '[texto a introducir]' en el [tipo de elemento] de '[texto/nombre del elemento]'`
+          * Ej: "escribe 'mi_proyecto_final' en el campo de texto de 'Nombre del proyecto'", "escribe 'contraseña123' en el campo de texto de 'Contraseña'"
+      * **Seleccionar (en listas/menús):** `selecciona '[opción deseada]' en el [tipo de elemento] de '[nombre del menú/lista]'`
+          * Ej: "selecciona 'Configuración Avanzada' en el menú desplegable de 'Opciones'"
+      * **Presionar Tecla/Combinación:** `presiona '[tecla]'` o `presiona '[tecla1]+[tecla2]'`
+          * Ej: "presiona 'Enter'", "presiona 'Alt+F4'", "presiona 'Ctrl+S'"
+      * **Esperar:** `espera a que se abra la [ventana/diálogo] '[Nombre de la ventana]'` o `espera X segundos`
+          * Ej: "espera a que se abra la ventana 'Configuración'", "espera 5 segundos"
+      * **Scroll:** `haz scroll [arriba/abajo/izquierda/derecha] en el [tipo de elemento] de '[texto/nombre del elemento]'`
+          * Ej: "haz scroll abajo en el área de texto de 'Log'"
+      * **Cierre genérico:** `cierra la ventana actual` (para casos como Alt+F4 si el modelo no lo infiere bien)
+
+  4.  **Manejo de Instrucciones no Automatizables/Claras:**
+      Si la instrucción es una simple declaración, una prueba, un saludo, una pregunta, o no implica una serie de acciones de automatización concretas sobre una GUI, genera **UN ÚNICO paso** utilizando una de las siguientes acciones genéricas:
+      * `reconoce que la instrucción es una prueba de [tipo de prueba]` (ej. "prueba de audio", "prueba de configuración")
+      * `saluda al usuario`
+      * `la instrucción no implica una acción de automatización de GUI específica` (para instrucciones vagas o irrelevantes)
+      * `solicita más detalles sobre la tarea a automatizar` (si la instrucción es ambigua pero podría ser automatizable con más info)
+
+  ---
+  **Ejemplos para el Modelo:**
+
+  -   **Instrucción:** "abre la aplicación MicroWin"
+      **Respuesta JSON esperada:**
+      {{{{
         "steps": [
-          {{ "step": 1, "action": "busca el icono de 'Inicio'" }},
-          {{ "step": 2, "action": "haz clic en el icono de 'Inicio'" }},
-          {{ "step": 3, "action": "espera a que se abra el menú de 'Inicio'" }},
-          {{ "step": 4, "action": "busca el icono de 'MicroWin'" }},
-          {{ "step": 5, "action": "haz clic en el icono de 'MicroWin'" }},
-          {{ "step": 6, "action": "espera a que se abra la aplicación MicroWin" }}
+          {{{{ "step": 1, "action": "busca el icono de 'Inicio'" }}}},
+          {{{{ "step": 2, "action": "haz clic en el icono de 'Inicio'" }}}},
+          {{{{ "step": 3, "action": "espera a que se abra el menú de 'Inicio'" }}}},
+          {{{{ "step": 4, "action": "busca el icono de 'MicroWin'" }}}},
+          {{{{ "step": 5, "action": "haz clic en el icono de 'MicroWin'" }}}},
+          {{{{ "step": 6, "action": "espera a que se abra la aplicación MicroWin" }}}}
         ]
-      }}
+      }}}}
 
-    - Instrucción: "probando la nueva configuración del audio"
-      Respuesta JSON esperada:
-      {{
+  -   **Instrucción:** "Quiero crear un nuevo programa en STEP 7."
+      **Respuesta JSON esperada:**
+      {{{{
         "steps": [
-          {{ "step": 1, "action": "reconoce que la instrucción es una prueba de audio" }}
+          {{{{ "step": 1, "action": "busca el icono de 'Inicio'" }}}},
+          {{{{ "step": 2, "action": "haz clic en el icono de 'Inicio'" }}}},
+          {{{{ "step": 3, "action": "espera a que se abra el menú de 'Inicio'" }}}},
+          {{{{ "step": 4, "action": "busca el icono de 'SIMATIC Manager'" }}}},
+          {{{{ "step": 5, "action": "haz clic en el icono de 'SIMATIC Manager'" }}}},
+          {{{{ "step": 6, "action": "espera a que se abra la ventana de 'SIMATIC Manager'" }}}},
+          {{{{ "step": 7, "action": "haz clic en el menú de 'Archivo'" }}}},
+          {{{{ "step": 8, "action": "selecciona 'Nuevo' en el menú" }}}},
+          {{{{ "step": 9, "action": "espera a que se abra el cuadro de diálogo 'Nuevo Proyecto'" }}}},
+          {{{{ "step": 10, "action": "escribe 'MiNuevoProyectoPLC' en el campo de texto de 'Nombre del Proyecto'" }}}},
+          {{{{ "step": 11, "action": "haz clic en el botón de 'Crear'" }}}}
         ]
-      }}
+      }}}}
 
-    - Instrucción: "Hola"
-      Respuesta JSON esperada:
-      {{
+  -   **Instrucción:** "probando la nueva configuración del audio"
+      **Respuesta JSON esperada:**
+      {{{{
         "steps": [
-          {{ "step": 1, "action": "saluda al usuario" }}
+          {{{{ "step": 1, "action": "reconoce que la instrucción es una prueba de audio" }}}}
         ]
-      }}
+      }}}}
 
-    - Instrucción: "Cierra la ventana actual"
-      Respuesta JSON esperada:
-      {{
+  -   **Instrucción:** "Hola"
+      **Respuesta JSON esperada:**
+      {{{{
         "steps": [
-          {{ "step": 1, "action": "presiona 'alt+f4'" }}
+          {{{{ "step": 1, "action": "saluda al usuario" }}}}
         ]
-      }}
+      }}}}
 
-    Instrucción: "{instruction}"
-    """
+  -   **Instrucción:** "Cierra la ventana actual"
+      **Respuesta JSON esperada:**
+      {{{{
+        "steps": [
+          {{{{ "step": 1, "action": "presiona 'Alt+F4'" }}}}
+        ]
+      }}}}
 
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4o", # O el modelo de OpenAI que prefieras
-            messages=[
-                {"role": "system", "content": "Genera pasos de automatizacion en formato JSON. La respuesta debe ser un objeto JSON con una clave 'steps' que contiene una lista de objetos de paso."},
-                {"role": "user", "content": prompt}
-            ],
-            response_format={"type": "json_object"}, # Solicitar respuesta en formato JSON de nivel superior
-            temperature=0.2,
-            max_tokens=500
-        )
-        
-        json_response_str = response.choices[0].message.content
-        
-        print(f"DEBUG: Raw JSON response from model: {json_response_str}", flush=True)
-        sys.stdout.flush() # Ensure this debug print is flushed
+  -   **Instrucción:** "Qué hora es?"
+      **Respuesta JSON esperada:**
+      {{{{
+        "steps": [
+          {{{{ "step": 1, "action": "la instrucción no implica una acción de automatización de GUI específica" }}}}
+        ]
+      }}}}
 
-        parsed_json = json.loads(json_response_str)
+  ---
+  **Instrucción del Usuario:** "{instruction}"
+  """
+  
 
-        # Validar y extraer la lista de pasos de la clave "steps"
-        if isinstance(parsed_json, dict) and "steps" in parsed_json and \
-           isinstance(parsed_json["steps"], list) and \
-           all(isinstance(item, dict) for item in parsed_json["steps"]):
-            return parsed_json["steps"]
-        else:
-            print(f"ERROR: El modelo no devolvio un objeto JSON con la clave 'steps' conteniendo una lista de objetos. Tipo recibido: {type(parsed_json)}", flush=True)
-            sys.stdout.flush()
-            return []
+  try:
+      response = client.chat.completions.create(
+          model="gpt-4o", # O el modelo de OpenAI que prefieras
+          messages=[
+              {"role": "system", "content": "Genera pasos de automatizacion en formato JSON. La respuesta debe ser un objeto JSON con una clave 'steps' que contiene una lista de objetos de paso."},
+              {"role": "user", "content": prompt}
+          ],
+          response_format={"type": "json_object"}, # Solicitar respuesta en formato JSON de nivel superior
+          temperature=0.2,
+          max_tokens=500
+      )
+      
+      json_response_str = response.choices[0].message.content
+      
+      print(f"DEBUG: Raw JSON response from model: {json_response_str}", flush=True)
+      sys.stdout.flush() # Ensure this debug print is flushed
 
-    except json.JSONDecodeError as e:
-        print(f"ERROR: Error al parsear la respuesta JSON del modelo: {e}", flush=True)
-        print(f"DEBUG: JSON string que causo el error: {json_response_str}", flush=True)
-        sys.stdout.flush()
-        return []
-    except Exception as e:
-        print(f"ERROR: Error al generar pasos con el modelo de lenguaje: {e}", flush=True)
-        print(f"Detalles de la respuesta (si existe): {getattr(e, 'response', 'No response attribute')}", flush=True)
-        sys.stdout.flush()
-        return []
+      parsed_json = json.loads(json_response_str)
+
+      # Validar y extraer la lista de pasos de la clave "steps"
+      if isinstance(parsed_json, dict) and "steps" in parsed_json and \
+          isinstance(parsed_json["steps"], list) and \
+          all(isinstance(item, dict) for item in parsed_json["steps"]):
+          return parsed_json["steps"]
+      else:
+          print(f"ERROR: El modelo no devolvio un objeto JSON con la clave 'steps' conteniendo una lista de objetos. Tipo recibido: {type(parsed_json)}", flush=True)
+          sys.stdout.flush()
+          return []
+
+  except json.JSONDecodeError as e:
+      print(f"ERROR: Error al parsear la respuesta JSON del modelo: {e}", flush=True)
+      print(f"DEBUG: JSON string que causo el error: {json_response_str}", flush=True)
+      sys.stdout.flush()
+      return []
+  except Exception as e:
+      print(f"ERROR: Error al generar pasos con el modelo de lenguaje: {e}", flush=True)
+      print(f"Detalles de la respuesta (si existe): {getattr(e, 'response', 'No response attribute')}", flush=True)
+      sys.stdout.flush()
+      return []
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Genera pasos de automatizacion a partir de una instruccion de texto.")

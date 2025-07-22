@@ -35,7 +35,7 @@ def click_on_image(image_path: str, confidence: float = 0.7): # Confianza reduci
             center_x, center_y = pyautogui.center(location)
             print(f"INFO: Imagen encontrada en {location}. Haciendo clic en el centro ({center_x}, {center_y}).", flush=True)
             sys.stdout.flush()
-            pyautogui.click(center_x, center_y)
+            pyautogui.tripleClick(center_x, center_y)
             return True
         else:
             try:
