@@ -1,0 +1,50 @@
+[
+  {
+    "step": 1,
+    "action": "busca el icono de 'Inicio'"
+  },
+  {
+    "step": 2,
+    "action": "haz clic en el icono de 'Inicio'"
+  },
+  {
+    "step": 3,
+    "action": "espera a que se abra el menú de 'Inicio'"
+  },
+  {
+    "step": 4,
+    "action": "busca el icono de 'Todos los programas'"
+  },
+  {
+    "step": 5,
+    "action": "haz clic en el icono de 'Todos los programas'"
+  },
+  {
+    "step": 6,
+    "action": "espera a que se abra el menú desplegable 'Todos los programas'"
+  },
+  {
+    "step": 7,
+    "action": "haz scroll en el menú desplegable 'Todos los programas'"
+  },
+  {
+    "step": 8,
+    "action": "busca el icono de 'Bloc de notas'"
+  },
+  {
+    "step": 9,
+    "action": "haz clic en el icono de 'Bloc de notas'"
+  },
+  {
+    "step": 10,
+    "action": "espera a que se abra la aplicación Bloc de notas"
+  },
+  {
+    "step": 11,
+    "action": "haz clic en el área de texto del Bloc de notas"
+  },
+  {
+    "step": 12,
+    "action": "escribe '¡Hola! ¿Qué hace?'"
+  }
+]
