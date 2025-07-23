@@ -1,3 +1,5 @@
 {
-    "icono_003.png": "Icono de papelera de reciclaje, representa un contenedor para archivos eliminados. Permite restaurar o eliminar permanentemente archivos en una interfaz de sistema operativo."
+    "description": "Icono de acceso directo con imagen de llama, representa un enlace rápido a la aplicación Ollama.",
+    "image_path": "C:\\Users\\Manuel\\Desktop\\REBOOT_ACADEMY\\Projects\\PLCaid\\capture\\image.png",
+    "qdrant_id": "63b3d6269fca4829b583db1e4c28f941"
 }

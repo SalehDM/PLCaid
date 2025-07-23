@@ -1,187 +1,216 @@
 import streamlit as st
-import speech_recognition as sr
-import sounddevice as sd
-import wavio # Importar wavio para guardar archivos WAV
 import subprocess
 import os
-import sys
-import threading
-import queue
+from datetime import datetime
 import time
+import sounddevice as sd # Importar sounddevice
+from scipy.io.wavfile import write # Importar write para guardar WAV
+import speech_recognition as sr # Importar speech_recognition
 
-# --- Configurar la codificación de la salida de la consola al inicio ---
-# Esto es crucial para asegurar que Streamlit y los subprocesos manejen UTF-8 correctamente.
-try:
-    sys.stdout.reconfigure(encoding='utf-8')
-    sys.stderr.reconfigure(encoding='utf-8')
-except AttributeError:
-    # reconfigure no está disponible en todas las versions de Python o entornos
-    pass
-except Exception as e:
-    st.error(f"WARNING: No se pudo reconfigurar la codificacion de la consola: {e}")
+# --- Configuración de rutas ---
+# voice_to_text_whisper.py ya no se usará para la grabación de voz directa aquí
+# ORDER_FILE_PATH se usará para guardar la transcripción de la voz
+ORDER_FILE_PATH = os.path.join(os.path.dirname(__file__), 'input_text', 'order.txt')
+HISTORIAL_FILE_PATH = os.path.join(os.path.dirname(__file__), 'historial.txt')
+RECORDED_AUDIO_PATH = os.path.join(os.path.dirname(__file__), 'input_text', 'recorded_audio.wav') # Ruta para guardar el audio grabado
 
-# Rutas de archivos (ajustadas para la estructura del proyecto)
-AUDIO_FILE = "input_audio/input.wav"
-INPUT_TEXT_DIR = "input_text"
-ORDER_FILE = os.path.join(INPUT_TEXT_DIR, "order.txt")
-MAIN_SCRIPT = "main.py" # main.py está en la raíz del proyecto
-
-# Asegurarse de que el directorio de audio exista
-os.makedirs(os.path.dirname(AUDIO_FILE), exist_ok=True)
-os.makedirs(INPUT_TEXT_DIR, exist_ok=True)
-
-# Inicializar historial de órdenes en la sesión de Streamlit
-if 'order_history' not in st.session_state:
-    st.session_state.order_history = []
-
-st.set_page_config(layout="wide", page_title="PLCaid - Asistente de Automatización")
-
-st.title("🗣️ PLCaid - Asistente de Automatización por Voz")
-
-# Contenedor para la salida de la consola en Streamlit
-console_output_placeholder = st.empty()
-
-# Cola para la comunicación entre el hilo de subproceso y el hilo principal de Streamlit
-output_queue = queue.Queue()
-
-def record_audio(filename, duration=5, samplerate=44100, channels=1):
+# Inyectar CSS para estilos personalizados
+st.markdown(
     """
-    Graba audio desde el micrófono predeterminado y lo guarda en un archivo WAV.
-    """
-    st.info(f"🎙️ Grabando audio... habla ahora ({duration} segundos).")
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+
+    html, body, [class*="css"]  {
+        font-family: 'Montserrat', sans-serif;
+        background-color: #f9fbfc;
+    }
+    .title {
+        font-size: 3rem;
+        font-weight: 700;
+        color: #003366;
+        margin-bottom: 1rem;
+    }
+    .stButton>button {
+        background-color: #007BFF;
+        color: white;
+        border-radius: 8px;
+        height: 3rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+        transition: background-color 0.3s ease;
+        border: none;
+    }
+    .stButton>button:hover {
+        background-color: #0056b3;
+    }
+    .stTextArea>div>textarea {
+        font-size: 1.1rem;
+        font-family: 'Courier New', Courier, monospace;
+        border-radius: 8px;
+        border: 1.5px solid #007BFF;
+        background-color: #ffffff;
+        padding: 10px;
+    }
+    .history-item {
+        background-color: ;
+        border-left: 5px solid #007BFF;
+        padding: 12px 18px;
+        margin-bottom: 10px;
+        border-radius: 6px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .info-box {
+        background-color: #d9edf7;
+        color: #31708f;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-weight: 600;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# Configuración general de la interfaz
+st.markdown('<h1 class="title">🤖 Interfaz de Control para PLCaid</h1>', unsafe_allow_html=True)
+
+# Sidebar con opciones extra y ayuda
+st.sidebar.header("⚙️ Opciones")
+duracion_grabacion = st.sidebar.slider("Duración grabación (segundos)", 1, 10, 5, help="Selecciona la duración en segundos para la grabación de voz.")
+
+st.sidebar.markdown("""
+---
+### ℹ️ Ayuda
+- Usa el modo Texto para escribir instrucciones manualmente.
+- Usa el modo Voz para grabar y transcribir comandos.
+- El historial se guarda automáticamente en un archivo.
+- Puedes limpiar el historial usando el botón correspondiente.
+""")
+
+# Inicializar historial en sesión
+if "historial" not in st.session_state:
+    st.session_state.historial = []
+
+# Cargar historial desde archivo al inicio (solo si está vacío)
+if not st.session_state.historial:
     try:
-        # Grabar audio
-        recording = sd.rec(int(duration * samplerate), samplerate=samplerate, channels=channels, dtype='int16')
-        sd.wait() # Esperar a que la grabación termine
-        
-        # Guardar el archivo WAV usando wavio
-        wavio.write(filename, recording, samplerate, sampwidth=2)
-        st.success(f"✅ Grabación finalizada. Audio guardado en: {filename}")
-        return True
-    except Exception as e:
-        st.error(f"❌ Error al grabar audio: {e}. Asegúrate de que un micrófono esté conectado y configurado.")
-        return False
-
-def transcribe_audio(audio_file):
-    """
-    Transcribe el audio de un archivo a texto usando Google Speech Recognition.
-    """
-    st.info("🗣️ Transcribiendo voz...")
-    recognizer = sr.Recognizer()
-    try:
-        with sr.AudioFile(audio_file) as source:
-            audio_data = recognizer.record(source)
-            text = recognizer.recognize_google(audio_data, language="es-ES")
-            st.write(f"🗣️ Transcripción de voz: **{text}**")
-            return text
-    except sr.UnknownValueError:
-        st.warning("⚠️ No se pudo entender el audio. Por favor, inténtalo de nuevo.")
-        return None
-    except sr.RequestError as e:
-        st.error(f"❌ Error en el servicio de reconocimiento de voz; {e}")
-        return None
-    except Exception as e:
-        st.error(f"❌ Error al transcribir audio: {e}")
-        return None
-
-def run_main_script_in_thread(order_text, q):
-    """
-    Ejecuta el script main.py como un subproceso en un hilo separado
-    y redirige su salida a una cola.
-    """
-    try:
-        # Configurar el entorno para el subproceso, asegurando UTF-8
-        env = os.environ.copy()
-        env['PYTHONIOENCODING'] = 'utf-8'
-        env['PYTHONUTF8'] = '1' # Para Python 3.7+
-
-        # Usar Popen para capturar la salida en tiempo real
-        process = subprocess.Popen(
-            ["python", MAIN_SCRIPT, order_text],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=False, # Leer como bytes
-            env=env,
-            encoding=None # No decodificar automáticamente aquí
-        )
-
-        # Leer stdout y stderr en hilos separados para evitar deadlocks
-        def read_stream(stream, stream_name):
-            for line_bytes in stream:
-                try:
-                    line_decoded = line_bytes.decode('utf-8', errors='replace').strip()
-                    if line_decoded:
-                        q.put(f"[{stream_name}] {line_decoded}")
-                except Exception as decode_e:
-                    q.put(f"[{stream_name} DECODE ERROR] {decode_e} - Raw: {line_bytes}")
-
-        stdout_thread = threading.Thread(target=read_stream, args=(process.stdout, "STDOUT"))
-        stderr_thread = threading.Thread(target=read_stream, args=(process.stderr, "STDERR"))
-
-        stdout_thread.start()
-        stderr_thread.start()
-
-        stdout_thread.join()
-        stderr_thread.join()
-
-        process.wait() # Esperar a que el proceso termine
-        
-        if process.returncode == 0:
-            q.put("✅ main.py ejecutado correctamente.")
-        else:
-            q.put(f"❌ main.py finalizó con errores. Código de salida: {process.returncode}")
-
+        if os.path.exists(HISTORIAL_FILE_PATH):
+            with open(HISTORIAL_FILE_PATH, "r", encoding="utf-8") as f:
+                lineas = f.readlines()
+                st.session_state.historial = [linea.strip() for linea in lineas if linea.strip()]
     except FileNotFoundError:
-        q.put(f"❌ Error: El script '{MAIN_SCRIPT}' no se encontró. Asegúrate de que esté en la raíz del proyecto.")
-    except Exception as e:
-        q.put(f"❌ Error inesperado al ejecutar main.py: {e}")
+        pass
 
+# Función para guardar línea en historial.txt
+def guardar_historial(linea):
+    os.makedirs(os.path.dirname(HISTORIAL_FILE_PATH), exist_ok=True)
+    with open(HISTORIAL_FILE_PATH, "a", encoding="utf-8") as f:
+        f.write(linea + "\n")
 
-# Función para actualizar la salida de la consola en Streamlit
-def update_console_output():
-    output_lines = []
-    while not output_queue.empty():
-        output_lines.append(output_queue.get())
+# Función para grabar audio (integrada de la versión anterior)
+def grabar_audio(duracion=5, samplerate=44100):
+    st.info(f"🎙️ Grabando audio... habla ahora ({duracion} segundos).")
+    # Asegurarse de que el directorio de salida exista para el audio
+    os.makedirs(os.path.dirname(RECORDED_AUDIO_PATH), exist_ok=True)
     
-    if output_lines:
-        with console_output_placeholder.container():
-            st.subheader("Salida en consola:")
-            for line in output_lines:
-                st.code(line, language="text")
-        # st.experimental_rerun() # Descomentar si la actualización no es lo suficientemente rápida
-                               # Puede causar parpadeo si se llama con demasiada frecuencia
+    # sd.rec es no bloqueante, sd.wait() espera a que termine la grabación
+    audio = sd.rec(int(duracion * samplerate), samplerate=samplerate, channels=1, dtype='int16')
+    sd.wait()
+    
+    write(RECORDED_AUDIO_PATH, samplerate, audio) # Guardar el audio en la ruta definida
+    return RECORDED_AUDIO_PATH
 
-# Botón para iniciar la grabación y el procesamiento
-if st.button("🎤 Iniciar Asistente"):
-    if record_audio(AUDIO_FILE):
-        transcribed_text = transcribe_audio(AUDIO_FILE)
-        if transcribed_text:
-            # Guardar la transcripción en el archivo de orden
-            with open(ORDER_FILE, "w", encoding="utf-8") as f:
-                f.write(transcribed_text)
-            st.info(f"INFO: Transcripción guardada en: {ORDER_FILE}")
+# Función para transcribir audio con Google Speech Recognition (integrada de la versión anterior)
+def transcribir_audio(ruta_audio):
+    r = sr.Recognizer()
+    try:
+        with sr.AudioFile(ruta_audio) as source:
+            audio = r.record(source)
+        texto = r.recognize_google(audio, language="es-ES")
+        return texto
+    except sr.UnknownValueError:
+        return "⚠️ No se entendió el audio."
+    except sr.RequestError as e:
+        return f"❌ Error al conectar con el servicio de reconocimiento: {e}"
+    except Exception as e:
+        return f"❌ Ocurrió un error inesperado durante la transcripción: {e}"
 
-            # Añadir al historial de órdenes
-            st.session_state.order_history.append(f"[{time.strftime('%H:%M:%S')}] {transcribed_text}")
 
-            st.info(f"🛠️ Ejecutando main.py con la orden: {transcribed_text}")
-            
-            # Ejecutar main.py en un hilo separado
-            thread = threading.Thread(target=run_main_script_in_thread, args=(transcribed_text, output_queue))
-            thread.start()
-            
-            # Mostrar un mensaje de carga mientras el subproceso se ejecuta
-            with st.spinner('Procesando orden...'):
-                while thread.is_alive() or not output_queue.empty():
-                    update_console_output()
-                    time.sleep(0.1) # Pequeña pausa para evitar el uso excesivo de la CPU
+# Función para ejecutar main.py
+def ejecutar_main(instruccion):
+    st.info(f"🛠️ Ejecutando main.py con la orden: **{instruccion}**")
+    try:
+        main_script_path = os.path.join(os.path.dirname(__file__), 'main.py')
+        resultado = subprocess.run(
+            ["python", main_script_path, instruccion],
+            capture_output=True, text=True, check=True, encoding="utf-8"
+        )
+        salida = resultado.stdout
+        st.success("✅ main.py ejecutado correctamente.")
+        st.code(salida, language="bash")
+    except subprocess.CalledProcessError as e:
+        st.error("❌ Error al ejecutar main.py")
+        st.code(e.stderr)
+    except FileNotFoundError:
+        st.error(f"❌ Error: No se encontró 'main.py' en la ruta esperada: {main_script_path}")
 
-            update_console_output() # Una última actualización para asegurar que se muestre todo
 
-# Mostrar historial de órdenes
+# Layout: columnas para entrada y botones
+col1, col2 = st.columns([3, 1])
+
+with col1:
+    modo = st.radio("Selecciona el modo de entrada:", ["📝 Texto", "🎙️ Voz"])
+
+with col2:
+    if st.button("🧹 Limpiar historial"):
+        st.session_state.historial.clear()
+        # También borrar archivo historial.txt
+        if os.path.exists(HISTORIAL_FILE_PATH):
+            with open(HISTORIAL_FILE_PATH, "w", encoding="utf-8") as f:
+                f.write("")
+        st.success("✅ Historial borrado.")
+
+if modo == "📝 Texto":
+    instruccion = st.text_area("Escribe tus instrucciones aquí:", height=150, key="entrada_texto")
+    if st.button("▶️ Enviar texto"):
+        if instruccion.strip():
+            linea = f"[{datetime.now().strftime('%H:%M:%S')}] {instruccion.strip()}"
+            st.session_state.historial.append(linea)
+            guardar_historial(linea)
+            ejecutar_main(instruccion.strip())
+        else:
+            st.warning("⚠️ Escribe alguna instrucción.")
+
+elif modo == "🎙️ Voz" and st.button("🎧 Grabar voz"):
+    # Asegurarse de que el directorio para la transcripción exista
+    os.makedirs(os.path.dirname(ORDER_FILE_PATH), exist_ok=True)
+
+    audio_path = grabar_audio(duracion=duracion_grabacion)
+    transcripcion = transcribir_audio(audio_path)
+    
+    st.text_area("🗣️ Transcripción de voz:", transcripcion, height=100)
+    
+    # Guardar la transcripción en order.txt
+    with open(ORDER_FILE_PATH, "w", encoding="utf-8") as f:
+        f.write(transcripcion)
+    st.info(f"INFO: Transcripción guardada en: {ORDER_FILE_PATH}")
+
+    if "⚠️" not in transcripcion and "❌" not in transcripcion:
+        linea = f"[{datetime.now().strftime('%H:%M:%S')}] {transcripcion}"
+        st.session_state.historial.append(linea)
+        guardar_historial(linea)
+        ejecutar_main(transcripcion)
+    else:
+        st.warning("⚠️ La transcripción contiene errores o no se entendió la voz. No se enviará a main.py.")
+
+
+st.markdown("---")
 st.subheader("🕓 Historial de órdenes")
-if st.session_state.order_history:
-    for order in reversed(st.session_state.order_history): # Mostrar las más recientes primero
-        st.write(order)
+
+if st.session_state.historial:
+    for item in st.session_state.historial[::-1]:
+        st.markdown(f'<div class="history-item">{item}</div>', unsafe_allow_html=True)
 else:
-    st.info("No hay órdenes en el historial aún.")
+    st.info("No hay órdenes registradas aún.")

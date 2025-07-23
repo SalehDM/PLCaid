@@ -5,8 +5,6 @@ from datetime import datetime
 import uuid
 import sys
 from dotenv import load_dotenv # Importar load_dotenv
-import json # <--- ¡Añadir esta importación!
-import traceback # Para manejar errores de forma más detallada
 
 # --- Configurar la codificación de la salida de la consola al inicio ---
 try:
@@ -37,7 +35,6 @@ if not QDRANT_URL:
 # si se está migrando de local con la intención de usar API Key, es mejor hacerla obligatoria.
 if not QDRANT_API_KEY:
     print("ERROR: La variable de entorno QDRANT_API_KEY no está configurada en .env. Es crucial para la autenticación de Qdrant.", flush=True)
-    sys.stdout.flush()
     sys.exit(1)
 
 # Inicializar el modelo de embeddings
@@ -107,17 +104,11 @@ def get_embedding(text: str):
     """
     Genera el embedding para un texto dado.
     """
-    try:
-        return embedding_model.encode(text).tolist()
-    except Exception as e:
-        print(f"ERROR: Fallo al obtener embedding para el texto '{text}': {e}", flush=True)
-        sys.stdout.flush()
-        return []
+    return embedding_model.encode(text).tolist()
 
-def add_ui_element(description: str, element_type: str, image_path: str = None, ocr_text: str = None, metadata: dict = None) -> str | None:
+def add_ui_element(description: str, element_type: str, image_path: str = None, ocr_text: str = None, metadata: dict = None):
     """
     Añade una descripción de elemento de UI a la colección de Qdrant.
-    Ahora devuelve el ID del punto creado.
     """
     vector = get_embedding(description)
     payload = {
@@ -132,85 +123,34 @@ def add_ui_element(description: str, element_type: str, image_path: str = None, 
     if metadata:
         payload.update(metadata)
 
-    point_id = str(uuid.uuid4().hex) # Generamos el ID aquí, como en tu original
+    point_id = str(uuid.uuid4().hex)
 
-    try:
-        operation_info = client.upsert( # Usamos el cliente global
-            collection_name=COLLECTION_NAME_UI_ELEMENTS,
-            points=[
-                models.PointStruct(
-                    id=point_id, # Usamos el ID generado
-                    vector=vector,
-                    payload=payload
-                )
-            ],
-            wait=True # Esperar a que la operación se complete
-        )
-        if operation_info.status == models.UpdateStatus.COMPLETED:
-            print(f"INFO: Elemento UI '{description}' añadido/actualizado en Qdrant con ID: {point_id}.", flush=True)
-            sys.stdout.flush()
-            return point_id # <--- ¡Devolvemos el ID!
-        else:
-            print(f"WARNING: No se pudo añadir/actualizar el elemento UI '{description}'. Estado: {operation_info.status}", flush=True)
-            sys.stdout.flush()
-            return None
-    except Exception as e:
-        print(f"ERROR: Fallo al añadir elemento UI '{description}' en Qdrant: {e}", flush=True)
-        sys.stdout.flush()
-        return None
+    client.upsert(
+        collection_name=COLLECTION_NAME_UI_ELEMENTS,
+        points=[
+            models.PointStruct(
+                id=point_id,
+                vector=vector,
+                payload=payload
+            )
+        ]
+    )
+    print(f"INFO: Elemento UI '{description}' añadido/actualizado en Qdrant con ID: {point_id}.", flush=True)
+    sys.stdout.flush()
 
 def search_ui_element(query_text: str, limit: int = 1, score_threshold: float = 0.7):
     """
     Busca elementos de UI similares a la consulta.
     Retorna los payloads de los elementos encontrados.
     """
-    try:
-        query_vector = get_embedding(query_text)
-        if not query_vector:
-            print("ERROR: No se pudo generar embedding para la consulta de busqueda.", flush=True)
-            sys.stdout.flush()
-            return []
-
-        search_result = client.search( # Usamos el cliente global
-            collection_name=COLLECTION_NAME_UI_ELEMENTS,
-            query_vector=query_vector,
-            limit=limit,
-            score_threshold=score_threshold,
-            with_payload=True, # Asegurarse de que el payload es devuelto
-            with_vectors=False # No necesitamos los vectores en la busqueda
-        )
-        return [hit.payload for hit in search_result]
-    except Exception as e:
-        print(f"ERROR: Fallo al buscar elementos UI en Qdrant: {e}", flush=True)
-        sys.stdout.flush()
-        return []
-
-# <--- ¡NUEVA FUNCIÓN AÑADIDA! --->
-def update_ui_element_payload(point_id: str, new_payload_data: dict) -> bool:
-    """
-    Actualiza campos específicos del payload de un punto de UI existente en Qdrant.
-    Devuelve True si la actualización fue exitosa, False en caso contrario.
-    """
-    try:
-        operation_info = client.set_payload( # Usamos el cliente global
-            collection_name=COLLECTION_NAME_UI_ELEMENTS,
-            points=[point_id], # Lista de IDs a actualizar
-            payload=new_payload_data, # Diccionario con los campos a establecer/actualizar
-            wait=True
-        )
-        if operation_info.status == models.UpdateStatus.COMPLETED:
-            print(f"INFO: Payload actualizado para el elemento UI con ID '{point_id}'.", flush=True)
-            sys.stdout.flush()
-            return True
-        print(f"WARNING: No se pudo actualizar el payload para el elemento UI con ID '{point_id}'. Estado: {operation_info.status}", flush=True)
-        sys.stdout.flush()
-        return False
-    except Exception as e:
-        print(f"ERROR: Fallo al actualizar payload para el elemento UI con ID '{point_id}': {e}", flush=True)
-        sys.stdout.flush()
-        traceback.print_exc()
-        return False
-
+    query_vector = get_embedding(query_text)
+    search_result = client.search(
+        collection_name=COLLECTION_NAME_UI_ELEMENTS,
+        query_vector=query_vector,
+        limit=limit,
+        score_threshold=score_threshold
+    )
+    return [hit.payload for hit in search_result]
 
 def add_task_flow(task_description: str, steps: list, metadata: dict = None):
     """
@@ -228,51 +168,33 @@ def add_task_flow(task_description: str, steps: list, metadata: dict = None):
 
     point_id = str(uuid.uuid4().hex)
 
-    try:
-        client.upsert( # Usamos el cliente global
-            collection_name=COLLECTION_NAME_TASK_FLOWS,
-            points=[
-                models.PointStruct(
-                    id=point_id,
-                    vector=vector,
-                    payload=payload
-                )
-            ]
-        )
-        print(f"INFO: Flujo de tarea '{task_description}' añadido/actualizado en Qdrant con ID: {point_id}.", flush=True)
-        sys.stdout.flush()
-    except Exception as e:
-        print(f"ERROR: Fallo al añadir flujo de tarea '{task_description}' en Qdrant: {e}", flush=True)
-        sys.stdout.flush()
-
+    client.upsert(
+        collection_name=COLLECTION_NAME_TASK_FLOWS,
+        points=[
+            models.PointStruct(
+                id=point_id,
+                vector=vector,
+                payload=payload
+            )
+        ]
+    )
+    print(f"INFO: Flujo de tarea '{task_description}' añadido/actualizado en Qdrant con ID: {point_id}.", flush=True)
+    sys.stdout.flush()
 
 def search_task_flow(query_text: str, limit: int = 1, score_threshold: float = 0.6):
     """
     Busca flujos de tarea similares a la consulta.
     Retorna los payloads de los flujos encontrados.
     """
-    try:
-        query_vector = get_embedding(query_text)
-        if not query_vector:
-            print("ERROR: No se pudo generar embedding para la consulta de busqueda.", flush=True)
-            sys.stdout.flush()
-            return []
+    query_vector = get_embedding(query_text)
+    search_result = client.search(
+        collection_name=COLLECTION_NAME_TASK_FLOWS,
+        query_vector=query_vector,
+        limit=limit,
+        score_threshold=score_threshold
+    )
+    return [hit.payload for hit in search_result]
 
-        search_result = client.search( # Usamos el cliente global
-            collection_name=COLLECTION_NAME_TASK_FLOWS,
-            query_vector=query_vector,
-            limit=limit,
-            score_threshold=score_threshold,
-            with_payload=True, # Asegurarse de que el payload es devuelto
-            with_vectors=False # No necesitamos los vectores en la busqueda
-        )
-        return [hit.payload for hit in search_result]
-    except Exception as e:
-        print(f"ERROR: Fallo al buscar flujos de tarea en Qdrant: {e}", flush=True)
-        sys.stdout.flush()
-        return []
-
-# El bloque __main__ ya está correctamente adaptado a funciones globales
 if __name__ == "__main__":
     print("--- Inicializando Knowledge Manager ---", flush=True)
     sys.stdout.flush()
@@ -280,35 +202,17 @@ if __name__ == "__main__":
 
     print("\n--- Añadiendo elementos de UI de ejemplo ---", flush=True)
     sys.stdout.flush()
-    
-    # <--- Ejemplo de cómo se llamaría ahora y se capturaría el ID --->
-    point_id_ejemplo_1 = add_ui_element("icono de inicio de Windows", "icono", metadata={"os": "Windows XP"})
-    if point_id_ejemplo_1:
-        print(f"ID del icono de inicio de Windows: {point_id_ejemplo_1}", flush=True)
-        # Ejemplo de actualización (simulando que la imagen se copia y ahora tienes la ruta permanente)
-        simulated_permanent_path = f"/path/to/qdrant_ui_cache/{point_id_ejemplo_1}.png"
-        update_ui_element_payload(point_id_ejemplo_1, {"image_path": simulated_permanent_path})
-
-    point_id_ejemplo_2 = add_ui_element("botón de aceptar", "botón")
-    if point_id_ejemplo_2:
-        print(f"ID del botón de aceptar: {point_id_ejemplo_2}", flush=True)
-
-    point_id_ejemplo_3 = add_ui_element("pestaña de configuración", "pestaña")
-    if point_id_ejemplo_3:
-        print(f"ID de la pestaña de configuración: {point_id_ejemplo_3}", flush=True)
-
+    add_ui_element("icono de inicio de Windows", "icono", metadata={"os": "Windows XP"})
+    add_ui_element("botón de aceptar", "botón")
+    add_ui_element("pestaña de configuración", "pestaña")
     add_ui_element("campo de texto para URL", "campo_entrada")
     add_ui_element("icono de MicroWin", "icono", metadata={"app": "MicroWin", "color": "azul", "forma": "engranaje"})
-
 
     print("\n--- Buscando elementos de UI ---", flush=True)
     sys.stdout.flush()
     results_ui = search_ui_element("botón para confirmar")
     if results_ui:
         print(f"Encontrado (UI): {results_ui[0]['description']} (Tipo: {results_ui[0]['type']})", flush=True)
-        # También puedes imprimir la ruta de la imagen si ya se ha actualizado
-        if 'image_path' in results_ui[0]:
-            print(f"Ruta de imagen: {results_ui[0]['image_path']}", flush=True)
     else:
         print("No se encontró un elemento UI similar.", flush=True)
     sys.stdout.flush()
@@ -316,8 +220,6 @@ if __name__ == "__main__":
     results_ui_2 = search_ui_element("icono para iniciar el sistema")
     if results_ui_2:
         print(f"Encontrado (UI): {results_ui_2[0]['description']} (Tipo: {results_ui_2[0]['type']})", flush=True)
-        if 'image_path' in results_ui_2[0]:
-            print(f"Ruta de imagen: {results_ui_2[0]['image_path']}", flush=True)
     else:
         print("No se encontró un elemento UI similar.", flush=True)
     sys.stdout.flush()
@@ -325,8 +227,6 @@ if __name__ == "__main__":
     results_ui_3 = search_ui_element("icono del programa PLC")
     if results_ui_3:
         print(f"Encontrado (UI): {results_ui_3[0]['description']} (Tipo: {results_ui_3[0]['type']})", flush=True)
-        if 'image_path' in results_ui_3[0]:
-            print(f"Ruta de imagen: {results_ui_3[0]['image_path']}", flush=True)
     else:
         print("No se encontró un elemento UI similar.", flush=True)
     sys.stdout.flush()
@@ -382,3 +282,4 @@ if __name__ == "__main__":
 
     print("\n--- Knowledge Manager listo ---", flush=True)
     sys.stdout.flush()
+    

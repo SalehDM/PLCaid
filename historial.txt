@@ -1,1 +1,16 @@
 [02:56:20] vaciar la papelera de reciclaje
+[22:59:12] abrir papelera de reciclaje
+[23:00:29] vaciar papelera de reciclaje
+[00:52:16] abrir icono Ollama
+[01:04:33] abrir icono Ollama
+[01:09:17] abrir icono Ollama
+[01:20:06] Abrir icono Ollama
+[01:30:08] clic en acceso directo a "Ollama"
+[01:42:15] clic en acceso directo a "Ollama"
+[02:07:58] clic en acceso directo a "Ollama"
+[02:24:07] clic en acceso directo a "Ollama"
+[02:29:50] clic en acceso directo a "Ollama"
+[03:24:11] clic en acceso directo a "Ollama"
+[03:34:13] clic en acceso directo a "Ollama"
+[03:44:54] clic en acceso directo a "Ollama"
+[09:31:17] doble clic en icono de "Ollama"
