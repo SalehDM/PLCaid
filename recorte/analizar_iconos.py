@@ -714,6 +714,14 @@ try:
     if __name__ == "__main__":
         parser = argparse.ArgumentParser(description="Analiza una captura de pantalla para identificar un elemento UI.")
         parser.add_argument("descripcion", type=str, help="La descripcion del elemento UI a buscar (ej. 'papelera de reciclaje').")
+        
+        parser.add_argument("--add_to_knowledge", type=str, default="false",
+                        help="Si es 'true', el elemento encontrado se añadirá/actualizará en la base de conocimiento.")
+        parser.add_argument("--element_type", type=str, default=None,
+                            help="Tipo de elemento (ej. 'icono', 'boton', 'campo_entrada').")
+        parser.add_argument("--point_id", type=str, default=None,
+                            help="ID del punto en Qdrant a actualizar, si existe.")
+        
         args = parser.parse_args()
 
         screenshot_path = os.path.join(project_root, "screenshots", "pantalla.png")

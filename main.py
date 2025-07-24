@@ -5,6 +5,31 @@ import json
 import time
 import shutil # Necesario para shutil.copy
 
+
+
+
+#import qdrant_client # Asegúrate de que esto se resuelva correctamente
+
+# print(f"DEBUG_MAIN: Python executable used by main.py: {sys.executable}")
+# print(f"DEBUG_MAIN: sys.path for main.py: {sys.path}")
+# if 'qdrant_client' in sys.modules:
+#     print(f"DEBUG_MAIN: qdrant_client.__file__ loaded by main.py: {qdrant_client.__file__}")
+#     print(f"DEBUG_MAIN: qdrant_client version loaded by main.py: {qdrant_client.__version__}")
+# else:
+#     print("DEBUG_MAIN: qdrant_client not yet loaded by main.py directly.")
+
+# # Asegúrate de que el directorio del proyecto esté en sys.path para importar knowledge_manager.py
+# project_root = os.path.dirname(os.path.abspath(__file__))
+# if project_root not in sys.path:
+#     sys.path.insert(0, project_root)
+# print(f"DEBUG_MAIN: Project root added to sys.path: {project_root}")
+
+
+
+
+
+
+
 # --- Configurar la codificación de la salida de la consola al inicio ---
 try:
     sys.stdout.reconfigure(encoding='utf-8')
@@ -50,11 +75,11 @@ TEXT_TO_STEPS_SCRIPT = os.path.join(project_root, 'script', 'text_to_steps.py')
 PARSED_STEPS_FILE = os.path.join(project_root, 'parsed_steps', 'steps.json')
 INPUT_ORDER_FILE = os.path.join(project_root, 'input_text', 'order.txt')
 SCREENSHOT_SCRIPT = os.path.join(project_root, 'script', 'screenshot.py')
-ANALIZAR_ICONOS_SCRIPT = os.path.join(project_root, 'recorte', 'analizar_iconos.py') # Corregido para 'recorte'
+ANALIZAR_ICONOS_SCRIPT = os.path.join(project_root, 'recorte', 'analizar_iconos.py')
 EXECUTE_ACTIONS_SCRIPT = os.path.join(project_root, 'script', 'execute_actions.py')
 
 # Umbral de similitud para la búsqueda en Qdrant
-QDRANT_UI_SEARCH_THRESHOLD = 0.8 # Ajusta este valor según la precisión deseada
+QDRANT_UI_SEARCH_THRESHOLD = 0.7 # Ajusta este valor según la precisión deseada. Considerar 0.6 si es demasiado estricto.
 
 
 def execute_command(command_list):
@@ -110,7 +135,7 @@ def execute_command(command_list):
         raise
 
 # Función auxiliar para encapsular el flujo de análisis completo y clic
-def _perform_full_analysis_and_click(element_description_query):
+def _perform_full_analysis_and_click(element_description_query, add_to_knowledge=False, element_type=None, point_id=None):
     """
     Realiza la captura de pantalla, análisis de elementos UI con GPT-4o y el clic.
     Retorna True si la secuencia de análisis y clic fue exitosa, False en caso contrario.
@@ -127,7 +152,17 @@ def _perform_full_analysis_and_click(element_description_query):
     print(f"🔎 Analizando elementos UI para: '{element_description_query}'", flush=True)
     sys.stdout.flush()
     try:
-        execute_command(["python", ANALIZAR_ICONOS_SCRIPT, element_description_query])
+        # Pasa el indicador add_to_knowledge y el element_type a analizar_iconos.py
+        # para que pueda decidir si añadir o actualizar el elemento en Qdrant.
+        command = ["python", ANALIZAR_ICONOS_SCRIPT, element_description_query]
+        if add_to_knowledge:
+            command.extend(["--add_to_knowledge", "true"])
+        if element_type: # Solo si conocemos el tipo, para ayudar al script
+            command.extend(["--element_type", element_type])
+        if point_id: # Si estamos actualizando un elemento existente
+            command.extend(["--point_id", str(point_id)]) # Convertir a string para el argparse
+
+        execute_command(command)
     except Exception as e:
         print(f"❌ Fallo en el análisis de elementos UI: {e}. No se puede continuar con la acción de clic.", flush=True)
         sys.stdout.flush()
@@ -190,6 +225,17 @@ def process_instruction(instruction: str):
         print(f"\n[Paso {step_num}] Acción: '{action}'", flush=True)
         sys.stdout.flush()
 
+        # Identificar el tipo de elemento para una búsqueda/cacheo más preciso
+        element_type = None
+        if "icono de" in action:
+            element_type = "icono"
+        elif "botón de" in action:
+            element_type = "boton" # Usar 'boton' para consistencia en Qdrant
+        elif "pestaña de" in action:
+            element_type = "pestaña"
+        elif "campo de entrada de" in action:
+            element_type = "campo_entrada"
+
         if action.startswith("busca el icono de") or \
             action.startswith("busca el botón de") or \
             action.startswith("busca la pestaña de") or \
@@ -202,49 +248,56 @@ def process_instruction(instruction: str):
             print(f"INFO: Buscando elemento UI: '{element_description_query}' en Qdrant...", flush=True)
             sys.stdout.flush()
 
-            found_elements = km.search_ui_element(element_description_query, limit=1, score_threshold=QDRANT_UI_SEARCH_THRESHOLD)
+            # Incluir 'type' en el filtro de búsqueda para mayor precisión
+            filters = {"type": element_type} if element_type else None
+            found_elements = km.search_ui_element(element_description_query, limit=1, score_threshold=QDRANT_UI_SEARCH_THRESHOLD, filters=filters)
 
-            if found_elements and 'image_path' in found_elements[0] and found_elements[0]['image_path']:
+            cached_image_path = None
+            cached_point_id = None 
+
+            if found_elements and found_elements[0].get('image_path'):
                 cached_element = found_elements[0]
-                print(f"INFO: Elemento '{cached_element['description']}' encontrado en Qdrant (cache hit). Tipo: {cached_element['type']}", flush=True)
-                sys.stdout.flush()
-                
-                # La ruta almacenada en Qdrant es relativa a la raíz del proyecto (PLCaid/).
-                # Necesitamos convertirla a una ruta absoluta para shutil.copy y execute_actions.py
-                abs_image_path = os.path.join(project_root, cached_element['image_path']) # Usamos project_root aquí
-                print(f"INFO: Usando imagen de referencia de caché: {abs_image_path}", flush=True)
-                sys.stdout.flush()
-                
-                try:
-                    capture_dir = os.path.join(project_root, 'capture') # Usamos project_root aquí
-                    os.makedirs(capture_dir, exist_ok=True)
-                    shutil.copy(abs_image_path, os.path.join(capture_dir, 'image.png'))
-                    print("INFO: Imagen de caché copiada a 'capture/image.png'.", flush=True)
+                # Se asume que image_path en Qdrant es relativa a project_root
+                cached_image_path = os.path.join(project_root, cached_element['image_path'])
+                cached_point_id = cached_element.get('id')
+
+                # Verificar si la imagen en caché realmente existe en el disco
+                if os.path.exists(cached_image_path):
+                    print(f"INFO: Elemento '{cached_element['description']}' encontrado en Qdrant (cache hit). Tipo: {cached_element['type']}", flush=True)
+                    print(f"INFO: Usando imagen de referencia de caché: {cached_image_path}", flush=True)
                     sys.stdout.flush()
                     
-                    print("INFO: Ejecutando acción de clic en el elemento encontrado (desde caché)...", flush=True)
+                    try:
+                        capture_dir = os.path.join(project_root, 'capture')
+                        os.makedirs(capture_dir, exist_ok=True)
+                        shutil.copy(cached_image_path, os.path.join(capture_dir, 'image.png'))
+                        print("INFO: Imagen de caché copiada a 'capture/image.png'.", flush=True)
+                        sys.stdout.flush()
+                        
+                        print("INFO: Ejecutando acción de clic en el elemento encontrado (desde caché)...", flush=True)
+                        sys.stdout.flush()
+                        execute_command(["python", EXECUTE_ACTIONS_SCRIPT, "click"])
+                        
+                        # Si todo fue bien, no necesitamos el análisis completo. Pasamos al siguiente paso.
+                        continue 
+                    except Exception as e:
+                        print(f"ERROR: Fallo al usar imagen de caché o ejecutar acción: {e}. Procediendo con análisis completo...", flush=True)
+                        sys.stdout.flush()
+                else:
+                    print(f"WARNING: La imagen en caché en '{cached_image_path}' no existe en disco. Forzando análisis completo.", flush=True)
                     sys.stdout.flush()
-                    execute_command(["python", EXECUTE_ACTIONS_SCRIPT, "click"])
-                except Exception as e:
-                    print(f"ERROR: Fallo al usar imagen de caché o ejecutar acción: {e}. Procediendo con análisis completo...", flush=True)
-                    sys.stdout.flush()
-                    # Si falla el caché, pasamos a la lógica de análisis completo.
-                    _perform_full_analysis_and_click(element_description_query)
-            else:
-                # CACHE MISS (o caché incompleto), proceder con el análisis completo
-                print(f"INFO: Elemento '{element_description_query}' NO encontrado en Qdrant (cache miss) o sin ruta de imagen. Recurriendo a análisis completo con GPT-4o.", flush=True)
-                sys.stdout.flush()
-                _perform_full_analysis_and_click(element_description_query)
+            
+            # CACHE MISS (o caché incompleto / imagen no encontrada en disco), proceder con el análisis completo
+            print(f"INFO: Elemento '{element_description_query}' NO encontrado en Qdrant (cache miss) o sin ruta de imagen válida/existente. Recurriendo a análisis completo con GPT-4o.", flush=True)
+            sys.stdout.flush()
+            # Pasar add_to_knowledge=True para que analizar_iconos.py gestione el guardado/actualización.
+            # También pasamos el element_type y el point_id si ya existía para que se actualice.
+            _perform_full_analysis_and_click(element_description_query, add_to_knowledge=True, element_type=element_type, point_id=cached_point_id)
 
         elif action.startswith("haz clic en el icono de") or \
             action.startswith("haz clic en el botón de") or \
             action.startswith("haz clic en la pestaña de") or \
             action.startswith("haz clic en el campo de entrada de"):
-            # Si el LLM ya especificó un clic, asumimos que el elemento ya fue "buscado" o es obvio.
-            # Aquí podríamos intentar un clic directo sin nueva búsqueda, o un re-intento de búsqueda.
-            # Por ahora, simplemente intentamos el clic, asumiendo que el elemento ya está en 'capture/image.png'
-            # (ej. si el paso anterior fue un "busca el icono de..." exitoso).
-            # Para mayor robustez, se podría considerar añadir una lógica de re-búsqueda/análisis aquí si el clic falla.
             print("🎯 Intentando ejecutar acción de clic en el elemento previamente encontrado o implícito...", flush=True)
             sys.stdout.flush()
             try:
@@ -334,18 +387,16 @@ def process_instruction(instruction: str):
             sys.stdout.flush()
             if google_search:
                 try:
-                    # En tu entorno, google_search devuelve un iterador o lista de SearchResultsContainer
-                    # Aquí asumo que quieres imprimir los resultados de la primera consulta directamente
                     search_results = google_search(queries=[query])
-                    for result_set in search_results: # Iteramos sobre SearchResultsContainer
+                    for result_set in search_results:
                         if result_set.results:
                             for res in result_set.results:
-                                print(f"   Título: {res.source_title}", flush=True)
-                                print(f"   Snippet: {res.snippet}", flush=True)
-                                print(f"   URL: {res.url}", flush=True)
+                                print(f"    Título: {res.source_title}", flush=True)
+                                print(f"    Snippet: {res.snippet}", flush=True)
+                                print(f"    URL: {res.url}", flush=True)
                                 print("-" * 20, flush=True)
                         else:
-                            print(f"   No se encontraron resultados para: {result_set.query}", flush=True)
+                            print(f"    No se encontraron resultados para: {result_set.query}", flush=True)
                 except Exception as e:
                     print(f"ERROR: Error al realizar búsqueda en Google: {e}", flush=True)
             else:
@@ -377,7 +428,7 @@ def process_instruction(instruction: str):
                     if reminders:
                         print("INFO: Tus recordatorios:", flush=True)
                         for r in reminders:
-                            print(f"   - {r}", flush=True)
+                            print(f"    - {r}", flush=True)
                     else:
                         print("INFO: No tienes recordatorios.", flush=True)
                 except Exception as e:
@@ -409,6 +460,5 @@ if __name__ == "__main__":
     else:
         print("Uso: python main.py \"[tu instrucción aquí]\"", flush=True)
         print("Ej: python main.py \"abre la aplicación MicroWin\"", flush=True)
-        print("No se proporcionó ninguna instrucción. Saliendo.", flush=True)
     print("INFO: main.py finalizado.", flush=True)
     sys.stdout.flush()

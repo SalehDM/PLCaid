@@ -1,1 +1,1 @@
-doble clic en icono de "Ollama"
+clic en acceso directo a Ollama
