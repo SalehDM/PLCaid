@@ -9,7 +9,7 @@ time.sleep(2)
 image_path = os.path.abspath(os.path.join(os.getcwd(), 'capture', 'image.png'))
 
 # Encuentra un objeto en la pantalla usando la ruta
-location = pyautogui.locateOnScreen(image_path, confidence=0.8)
+location = pyautogui.locateOnScreen(image_path, confidence=0.4)
 
 if location:
     # Obtiene las coordenadas del centro del objeto

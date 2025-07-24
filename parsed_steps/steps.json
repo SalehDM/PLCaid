@@ -1,26 +1,6 @@
 [
   {
     "step": 1,
-    "action": "busca el icono de 'Papelera de reciclaje'"
-  },
-  {
-    "step": 2,
-    "action": "haz doble clic en el icono de 'Papelera de reciclaje'"
-  },
-  {
-    "step": 3,
-    "action": "espera a que se abra la papelera de reciclaje"
-  },
-  {
-    "step": 4,
-    "action": "busca el archivo 'texto.txt' en la papelera de reciclaje"
-  },
-  {
-    "step": 5,
-    "action": "haz clic derecho en el archivo 'texto.txt'"
-  },
-  {
-    "step": 6,
-    "action": "selecciona 'Eliminar' en el menú contextual"
+    "action": "icono 'Papelera de reciclaje'"
   }
 ]

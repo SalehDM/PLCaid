@@ -28,10 +28,10 @@ if opcion == "1":
         subprocess.run(["python3", "script/text_to_steps.py"])
     else:
         print("Error: voice_to_text_whisper.py no finalizó correctamente.")
-elif opcion == "2":
-    subprocess.run(["python3", "script/text_to_steps.py"])
-else:
-    print("Opción no válida.")
+# elif opcion == "2":
+#     subprocess.run(["python3", "script/text_to_steps.py"])
+# else:
+#     print("Opción no válida.")
 
 ####################################################################################################################
 
