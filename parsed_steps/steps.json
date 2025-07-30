@@ -1,26 +1,32 @@
 [
   {
-    "step": 1,
-    "action": "busca el icono de 'Papelera de reciclaje'"
+    "step": "TIA Portal V15",
+    "action": "doubleClick" 
   },
   {
-    "step": 2,
-    "action": "haz doble clic en el icono de 'Papelera de reciclaje'"
+    "step": "Proyecto IA PLC",
+    "action": "doubleClick"
   },
   {
-    "step": 3,
-    "action": "espera a que se abra la papelera de reciclaje"
+    "step": "Abrir la vista del proyecto",
+    "action": "doubleClick"
   },
   {
-    "step": 4,
-    "action": "busca el archivo 'texto.txt' en la papelera de reciclaje"
+    "step": "PLC 1[CPU 1212C DC/DC/DC]",
+    "action": "cldoubleClickic"
   },
   {
-    "step": 5,
-    "action": "haz clic derecho en el archivo 'texto.txt'"
+    "step": "Bloques de programa",
+    "action": "doubleClick"
   },
   {
-    "step": 6,
-    "action": "selecciona 'Eliminar' en el menú contextual"
+    "step": "MarchaParo [FB1]",
+    "action": "doubleClick"
+  },
+  {
+    "step": "Editor de código",
+    "action": "doubleClick"
   }
 ]
+
+
