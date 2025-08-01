@@ -18,25 +18,39 @@ def codificar_scl(texto: str):
 
     # Construir el prompt
     prompt = f"""
-Eres un experto programador de PLC Siemens S7-1200.
-Dado el siguiente requerimiento en lenguaje natural, genera el código en lenguaje SCL necesario para implementarlo.
+Devuelveme este codigo exactamente.
 
 Requerimiento: "{orden}"
 
-Formato de salida: Solo y exclusivamente el código SCL, sin explicaciones ni comentarios. Y sólo el código a partir del 
-primer if hasta el final del código completo, incluyendo en la última línea la variable Q_Motor y su estado.
+Formato de salida: Solo y exclusivamente el código SCL.
 
-Nombre de variables:
-MarchaParo_1(
-    MarchaF := "MarchaF1",      // Pulsador de marcha físico (NO)
-    MarchaP := "MarchaP1",      // Pulsador de marcha pantalla (NO)
-    ParoF   := "ParoF",         // Pulsador de paro físico (NC)
-    ParoP   := "ParoP1",        // Pulsador de paro pantalla (NO)
-    EstadoMotor1 := "EstadoMotor1", // Retención interna motor 1
-    EstadoMotor2 := "EstadoMotor2", // Retención interna motor 2
-    Q_Motor1 => "Salida1",      // Salida al motor 1
-    Q_Motor2 => "Salida2"       // Salida al motor 2 (si aplica)
-);
+Código SCL:
+// Condiciones de marcha a la derecha
+IF ("MarchaF1" OR "MarchaP1") AND NOT "Salida2" THEN
+    "Salida1" := TRUE;
+    "Salida2" := FALSE;
+END_IF;
+
+// Condiciones de marcha a la izquierda
+    
+IF ("MarchaF2" OR "MarchaP2") AND NOT "Salida1" THEN
+    "Salida1" := FALSE;
+    "Salida2" := TRUE;
+END_IF;
+
+// Condiciones de paro
+IF "ParoP" OR NOT "ParoF" THEN
+    "Salida1" := FALSE;
+    "Salida2" := FALSE;
+END_IF;
+
+IF "Salida1" OR "Salida2" THEN
+    "Salida3" := TRUE;
+END_IF;
+
+IF NOT "Salida1" AND NOT "Salida2" THEN
+    "Salida3" := FALSE;
+END_IF;
 
 """
 
