@@ -9,7 +9,7 @@ from script.image_searcher import main_qdrant
 time.sleep(5)
 # Ruta absoluta del directorio raíz del proyecto (donde está main.py)
 project_root = os.path.dirname(os.path.abspath(__file__))
-"""
+
 steps_path = os.path.join(project_root, "parsed_steps", "steps.json")
 
 with open(steps_path, "r", encoding="utf-8") as f:
@@ -30,7 +30,7 @@ while num_step < total_steps:
     except Exception as e:
         print(f"Esperando a que cargue: {e}")
         time.sleep(3)
-"""
+
 steps_path = os.path.join(project_root, "input_text", "order.txt")
 
 with open(steps_path, "r", encoding="utf-8") as f:
