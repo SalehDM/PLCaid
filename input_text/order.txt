@@ -1,1 +1,0 @@
-controlar motor con inversor de giro

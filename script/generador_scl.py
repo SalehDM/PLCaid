@@ -18,27 +18,24 @@ def codificar_scl(texto: str):
 
     # Construir el prompt
     prompt = f"""
-Devuelveme este codigo exactamente.
-
-Requerimiento: "{orden}"
+Devuelveme este codigo exactamente igual al ejemplo.
 
 Formato de salida: Solo y exclusivamente el código SCL.
 
-Código SCL:
-// Condiciones de marcha a la derecha
+Ejemplo de código SCL:
+
+
 IF ("MarchaF1" OR "MarchaP1") AND NOT "Salida2" THEN
     "Salida1" := TRUE;
     "Salida2" := FALSE;
 END_IF;
-
-// Condiciones de marcha a la izquierda
     
 IF ("MarchaF2" OR "MarchaP2") AND NOT "Salida1" THEN
     "Salida1" := FALSE;
     "Salida2" := TRUE;
 END_IF;
 
-// Condiciones de paro
+
 IF "ParoP" OR NOT "ParoF" THEN
     "Salida1" := FALSE;
     "Salida2" := FALSE;

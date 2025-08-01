@@ -29,8 +29,7 @@ while num_step < total_steps:
         num_step += 1
     except Exception as e:
         print(f"Esperando a que cargue: {e}")
-        time.sleep(5)
-
+        time.sleep(3)
 """
 steps_path = os.path.join(project_root, "input_text", "order.txt")
 
@@ -41,7 +40,7 @@ codigo_scl = codificar_scl(order)
 
 print(codigo_scl)
 
-#action("../capture/i7.png", "texto", codigo_scl)
+action("../capture/i7.png", "texto", codigo_scl)
 
 time.sleep(2)
-#action("../capture/i8.png", "clic")
+action("../capture/i8.png", "doubleClick")

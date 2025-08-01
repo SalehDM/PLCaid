@@ -19,7 +19,7 @@ def action(step, action, texto_a_escribir=None):
             pyautogui.doubleClick(center_x, center_y)
         elif action == "texto":
             pyautogui.click(center_x, center_y)
-            pyautogui.write(texto_a_escribir, interval=0.2)
+            pyautogui.write(texto_a_escribir, interval=0.02)
         else:
             print("Acción no reconocida.")
     else:
