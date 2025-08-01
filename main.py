@@ -6,10 +6,10 @@ from script.execute_actions import action
 from script.generador_scl import codificar_scl
 from script.image_searcher import main_qdrant
 
-
+time.sleep(5)
 # Ruta absoluta del directorio raíz del proyecto (donde está main.py)
 project_root = os.path.dirname(os.path.abspath(__file__))
-
+"""
 steps_path = os.path.join(project_root, "parsed_steps", "steps.json")
 
 with open(steps_path, "r", encoding="utf-8") as f:
@@ -31,7 +31,7 @@ while num_step < total_steps:
         print(f"Esperando a que cargue: {e}")
         time.sleep(5)
 
-
+"""
 steps_path = os.path.join(project_root, "input_text", "order.txt")
 
 with open(steps_path, "r", encoding="utf-8") as f:
@@ -41,7 +41,7 @@ codigo_scl = codificar_scl(order)
 
 print(codigo_scl)
 
-action("../capture/i7.png", "texto", codigo_scl)
+#action("../capture/i7.png", "texto", codigo_scl)
 
 time.sleep(2)
-action("../capture/i8.png", "clic")
+#action("../capture/i8.png", "clic")

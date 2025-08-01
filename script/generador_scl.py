@@ -27,11 +27,17 @@ Formato de salida: Solo y exclusivamente el código SCL, sin explicaciones ni co
 primer if hasta el final del código completo, incluyendo en la última línea la variable Q_Motor y su estado.
 
 Nombre de variables:
-"MarchaParo_1"(
-               Start := "Tag_1",         // Pulsador de marcha
-               Stop := "Tag_2",          // Pulsador de paro
-               Q_Motor => "Tag_3"        // Salida al motor
+MarchaParo_1(
+    MarchaF := "MarchaF1",      // Pulsador de marcha físico (NO)
+    MarchaP := "MarchaP1",      // Pulsador de marcha pantalla (NO)
+    ParoF   := "ParoF",         // Pulsador de paro físico (NC)
+    ParoP   := "ParoP1",        // Pulsador de paro pantalla (NO)
+    EstadoMotor1 := "EstadoMotor1", // Retención interna motor 1
+    EstadoMotor2 := "EstadoMotor2", // Retención interna motor 2
+    Q_Motor1 => "Salida1",      // Salida al motor 1
+    Q_Motor2 => "Salida2"       // Salida al motor 2 (si aplica)
 );
+
 """
 
     # Solicitar la respuesta al modelo

@@ -13,7 +13,7 @@
   },
   {
     "step": "PLC 1[CPU 1212C DC/DC/DC]",
-    "action": "cldoubleClickic"
+    "action": "doubleClick"
   },
   {
     "step": "Bloques de programa",
