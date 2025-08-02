@@ -1,0 +1,24 @@
+[
+  {
+    "step": "../capture/i8.png",
+    "action": "click" 
+  },
+  {
+    "step": "../capture/i9.png",
+    "action": "click"
+  },
+  {
+    "step": "../capture/i10.png",
+    "action": "click"
+  },
+  {
+    "step": "../capture/i11.png",
+    "action": "click"
+  },
+  {
+    "step": "../capture/i12.png",
+    "action": "click"
+  }
+]
+
+
