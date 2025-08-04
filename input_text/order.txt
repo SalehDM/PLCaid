@@ -1,1 +1,1 @@
-motor
+control de motor con inversor de giro

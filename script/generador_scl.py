@@ -35,7 +35,6 @@ IF ("MarchaF2" OR "MarchaP2") AND NOT "Salida1" THEN
     "Salida2" := TRUE;
 END_IF;
 
-
 IF "ParoP" OR NOT "ParoF" THEN
     "Salida1" := FALSE;
     "Salida2" := FALSE;

@@ -14,21 +14,25 @@ def action(step, action, texto_a_escribir=None):
         center_x = location.left + location.width / 2
         center_y = location.top + location.height / 2
         if action == "doubleClick":
-            time.sleep(1)
+            time.sleep(3)
             #pyautogui.doubleClick(center_x, center_y)
-            pyautogui.click(center_x, center_y)
-            time.sleep(0.08)
+            pyautogui.moveTo(center_x, center_y, duration=0.1)
+            pyautogui.click()
+            time.sleep(0.07)
             pyautogui.click()
         elif action == "click":
-            time.sleep(1)
-            pyautogui.click(center_x, center_y)
+            time.sleep(3)
+            pyautogui.moveTo(center_x, center_y, duration=0.1)
+            pyautogui.click()
         elif action == "texto":
             time.sleep(1)
-            pyautogui.click(center_x, center_y)
+            pyautogui.moveTo(center_x, center_y, duration=0.)
+            pyautogui.click()
             pyautogui.write(texto_a_escribir, interval=0.05)
         else:
             print("Acción no reconocida.")
     else:
         print("No se pudo localizar el elemento en la pantalla actual con la confianza dada.")
+
 
 
